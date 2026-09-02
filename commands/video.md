@@ -134,6 +134,43 @@ marker mang theo gợi ý cảnh của đoạn đó, để mở Resolve ra là t
 9. **Kiểm tra bằng frame thật** trước khi tuyên bố xong: render/đọc frame đại diện,
    soi pacing và continuity. Không kết luận từ metadata.
 
+### Hook — cách người dùng tự dựng, học từ bản EN `tranhtreotuong` (2026-09-02)
+
+Tôi dựng hook thành **một shot toàn cảnh giữ 68 frame**. Người dùng vào Resolve dựng
+lại toàn bộ. Cấu trúc họ làm, đo trực tiếp từ timeline:
+
+| Frame | Dài | Nội dung |
+|---|---|---|
+| 0–22 | 22f | `C0784` zoom **1.88** — ba tấm poster nằm trên bàn, cận, đầy khung |
+| 22–38 | **16f** | `C0805` — nháy một cái thành phẩm đã treo trên tường |
+| 38–68 | 30f | `C0784` zoom 1.88 — quay lại poster |
+| 57–79 | 22f | `Blur Dissolve` cưỡi lên điểm cắt f68, sang thân bài |
+
+Rút ra năm điều, áp cho mọi hook short-form:
+
+1. **Mở bằng chính món đồ, cận và đầy khung — không phải toàn cảnh căn phòng.** Chủ đề
+   là bộ tranh thì frame đầu tiên phải là bộ tranh. Toàn cảnh để dành cho đoạn bối cảnh.
+2. **Hook cắt nhanh, kiểu A–B–A.** 22f → 16f → 30f. Cái 16 frame là một cú *nháy*
+   thành phẩm, nửa giây, đủ để tò mò chứ không đủ để xem kỹ. Giữ một shot suốt 68f là
+   quá tĩnh cho hook.
+3. **Ra khỏi hook bằng transition, không hard cut.** Họ đặt `Blur Dissolve` 22f cưỡi
+   lên đúng ranh giới hook → thân.
+4. **Có riser SFX chạy dưới hook.** Vào đúng frame nháy (f22), tan sau transition
+   (f105) — nghĩa là riser *đưa* người xem sang phần nội dung, không dừng ở hook.
+5. **VO có nhịp thở sau câu hook.** Họ cắt VO ở f68 rồi đẩy phần còn lại sang f75 —
+   chừa 7 frame im lặng. Đừng đặt VO thành một khối liền từ đầu tới cuối.
+
+Thêm một điều về framing: **cùng một clip có thể mang hai zoom khác nhau tuỳ vai trò.**
+`C0784` để zoom 1.88 ở hook (đọc được cả ba tấm poster) nhưng 3.16 ở S5. Đừng copy một
+giá trị zoom rồi dùng lại cho mọi lần xuất hiện của clip đó.
+
+**Transition tôi KHÔNG đặt được — đã đo lại 2026-09-02.** Resolve 20.3.3 không có API
+transition: `timeline.CreateTransition`, `timeline.AddTransition`, `item.AddTransition`,
+`item.GetTransition` đều resolve ra `None` (`'NoneType' object is not callable`).
+`dir()` cũng không liệt kê method nào. Nên việc đúng là: **để hard cut, cắm một marker
+ngay điểm đó ghi rõ transition đề xuất, và nói trong báo cáo cuối** để người dùng kéo
+tay — chứ không im lặng giao một bản thiếu nhịp.
+
 ### Text động trên timeline — CÔNG THỨC ĐÃ CHỨNG MINH (2026-09-02)
 
 **Chỉ làm khi có `text`** — mặc định là không thêm chữ. Không có thì bỏ qua toàn bộ mục này.

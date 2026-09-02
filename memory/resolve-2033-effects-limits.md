@@ -9,7 +9,13 @@ Measured live on DaVinci Resolve Studio **20.3.3.10** (2026-08-25), while trying
 to add a transition + dynamic zoom to the Gear A6700 cut. All three routes fail:
 
 - **Transitions** — no AddTransition/CreateTransition anywhere in the API.
-  Existing transitions can be read and deleted, never created. The documented
+  Existing transitions can be read and deleted, never created.
+  **Re-confirmed 2026-09-02** on 20.3.3.10: `timeline.CreateTransition`,
+  `timeline.AddTransition`, `item.AddTransition` and `item.GetTransition` all
+  resolve to `None` (`'NoneType' object is not callable`), and `dir()` lists none
+  of them. Note `hasattr()` returns True for every one of these — the proxy
+  objects answer any attribute — so `hasattr` is NOT a valid probe here; call the
+  method or read `dir()`. The documented
   workaround is the advanced Node server's `drp place_transition` (author
   offline, re-import), but that server is **not connected** in this setup.
 - **Native Dynamic Zoom** — `GetProperty("DynamicZoom")` returns null. Only

@@ -10,3 +10,4 @@
 - [Timeline & render defaults](timeline-and-render-defaults.md) — Full HD 30fps timeline, 4K/20000 render job queued but never started
 - [Sony PowerGrade + EXP](sony-powergrade-exp-workflow.md) — "lấy 1.5.1" = PowerGrade still; then tune EXP node to waveform just under 896
 - [Read the skill before acting](read-the-skill-before-acting.md) — the rule was already written down; I generated four unusable takes by not reading it
+- [Hook construction taste](hook-construction-taste.md) — subject close-up first, A-B-A flash, blur out, riser SFX, breath after the hook line
