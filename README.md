@@ -56,6 +56,10 @@ cho đúng máy bạn.
   Nam Á. `eleven_v3` còn tệ hơn.
 - **Phải đọc từng câu ngắn rồi ghép.** Clone dựng từ 17 giây audio chỉ giữ được giọng
   1–2 giây rồi trôi. Câu quá 12 từ là vào vùng hỏng.
+- **Có cờ `text` không có nghĩa là rải chữ suốt bài.** Caption chỉ đặt ở đoạn gọi tên
+  sản phẩm, đọc thông số, hoặc là điểm nhấn (hook, CTA). Đoạn kể chuyện thì bỏ trống —
+  đặt chữ vào chỉ là chép lại lời thoại lên màn hình. Khoảng 3–5 caption cho Reel
+  25–30 giây.
 - **ElevenLabs MCP không trả timestamp** — nó vứt `start`/`end` của từng từ. Mốc thời
   gian phải suy từ `ffmpeg silencedetect`, sai số khoảng ±0,5 giây.
 - **Đừng dùng `insert_title` của Resolve** — nó ripple insert trên V1 và đẩy lệch cả

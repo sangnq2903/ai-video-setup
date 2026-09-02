@@ -140,6 +140,34 @@ marker mang theo gợi ý cảnh của đoạn đó, để mở Resolve ra là t
 
 Chạy thật trên 20.3.3, chứng minh bằng frame render. Không còn là giả thiết.
 
+#### Đặt chữ Ở ĐÂU — chỉ chỗ có sản phẩm, thông số, hoặc điểm nhấn
+
+**Không rải chữ suốt bài.** Có cờ `text` không có nghĩa là mọi đoạn đều được một
+caption. Chốt 2026-09-02, sau khi bản EN `tranhtreotuong` dựng 9 caption cho 9 đoạn
+và người dùng bắt cắt xuống còn 4.
+
+Đặt caption khi đoạn đó có **một trong ba** thứ:
+
+| Đặt chữ | Ví dụ thật |
+|---|---|
+| **Tên sản phẩm / công cụ cụ thể** | `Nano double-sided tape`, `Made with ChatGPT` |
+| **Thông số, cách làm, con số** | `Fixed wall mount`, `CRI 97 · 1200 lumens` |
+| **Điểm nhấn** — hook mạnh, CTA, câu chốt | `Try it yourself` |
+
+Bỏ qua đoạn chỉ **kể chuyện, dẫn dắt, hay tả cảm xúc** — bối cảnh, "kết quả khá ưng
+ý", "sau khi hoàn thành đây là góc làm việc". Ở những đoạn đó hình đã nói đủ; đặt chữ
+vào chỉ là chép lại lời thoại lên màn hình, người xem đọc một thứ họ đang nghe.
+
+Hệ quả về cách viết chữ: caption **gọi tên món đồ**, không tóm tắt đoạn.
+`Nano double-sided tape` chứ không phải `Small: nano tape`; `Made with ChatGPT` chứ
+không phải `Asked ChatGPT`.
+
+Tỉ lệ thường thấy: **3–5 caption cho một Reel 25–30 giây.** Nhiều hơn thì gần như
+chắc chắn là đang rải chữ. Báo cáo cuối phải nói rõ **giữ mấy cái, bỏ mấy cái, và bỏ
+đoạn nào** — để người dùng biết đó là lựa chọn, không phải làm thiếu.
+
+#### Làm THẾ NÀO — công thức 6 bước
+
 **TUYỆT ĐỐI KHÔNG dùng `insert_title`** — nó ripple insert trên V1, đẩy lệch cả cut,
 rồi vẫn báo `success: true`.
 
@@ -349,7 +377,7 @@ với việc họ gõ thêm một từ.
 
 | Từ khoá | Thêm gì |
 |---|---|
-| `text` | Text động trên timeline (preset + cân tốc độ theo lời nói) |
+| `text` | Text động trên timeline (preset + cân tốc độ theo lời nói) — **chỉ đặt ở đoạn có sản phẩm, thông số, hoặc điểm nhấn**, xem mục "Đặt chữ Ở ĐÂU" |
 | `music` | Nhạc nền từ Epidemic Sound — gửi 2–3 link nghe thử, người dùng chọn |
 | `music-auto` | Nhạc nền, tự chọn bài hợp gu, khỏi gửi preview |
 | `sfx` | Tiếng động điểm nhấn |
