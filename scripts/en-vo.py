@@ -15,17 +15,25 @@ Dùng:
 File kịch bản: MỖI DÒNG MỘT CÂU NGẮN. Dòng trống bị bỏ qua.
 Dòng bắt đầu bằng # là ghi chú, không đọc.
 """
-import argparse, json, os, subprocess, sys, tempfile, urllib.request
+from __future__ import annotations   # python3 hệ thống là 3.9, cần cái này cho "dict | None"
+import argparse, json, os, re, subprocess, sys, tempfile, urllib.request
 
 VOICE_ID = "xYGgUqVrkXAXMWJZtqgF"          # "Sáng"
-MODEL_ID = "eleven_turbo_v2"                # English-only. KHÔNG dùng multilingual.
-SETTINGS = {                                # cấu hình B, chốt 2026-09-02
-    "stability": 0.55,
-    "similarity_boost": 0.35,
-    "style": 0.0,
-    "use_speaker_boost": False,
-    "speed": 1.0,
+
+# Mặc định = cấu hình E2, người dùng chốt 2026-09-02 sau khi nghe 13 bản.
+# Thay cho cấu hình turbo_v2 cũ: turbo_v2 sạch accent nhưng KHÔNG có cảm xúc.
+# eleven_v3 mở ra hai thứ turbo_v2 không có: language_code (ghim phoneme tiếng
+# Anh) và audio tag (lấy cảm xúc). Đổi lại v3 đọc chậm hơn ~20%.
+MODEL_ID = "eleven_v3"
+LANGUAGE = "en"                             # v3 CHỈ nhận "en"; "en-GB" bị API từ chối
+SETTINGS = {
+    "stability": 0.5,                       # v3 chỉ nhận 0.0 / 0.5 / 1.0
+    "similarity_boost": 0.20,               # 0.35 còn dính accent Ấn; 0.20 sạch hơn, bớt giống Sáng
 }
+
+# Cấu hình cũ, giữ lại để so sánh: --model eleven_turbo_v2 --stability 0.55
+# --similarity 0.35 (turbo_v2 KHÔNG nhận language_code, script tự bỏ).
+TAG_RE = re.compile(r"\[[^\]]*\]")           # audio tag [curious] — không tính vào giới hạn từ
 MCP_JSON = "/Volumes/Data/davinci-resolve-mcp/.mcp.json"
 WORD_LIMIT = 12   # dài hơn là vào vùng trôi giọng
 
@@ -47,12 +55,17 @@ def read_lines(path: str) -> list[str]:
     return out
 
 
-def tts(text: str, key: str, dest: str) -> None:
-    body = json.dumps({
+def tts(text: str, key: str, dest: str, model: str = MODEL_ID,
+        settings: dict | None = None, language: str | None = LANGUAGE) -> None:
+    payload = {
         "text": text,
-        "model_id": MODEL_ID,
-        "voice_settings": SETTINGS,
-    }).encode()
+        "model_id": model,
+        "voice_settings": settings if settings is not None else SETTINGS,
+    }
+    # turbo_v2 là model English-only, nó không nhận language_code
+    if language and model.startswith("eleven_v3"):
+        payload["language_code"] = language
+    body = json.dumps(payload).encode()
     req = urllib.request.Request(
         f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}?output_format=mp3_44100_128",
         data=body,
@@ -101,12 +114,19 @@ def main() -> None:
     ap.add_argument("--gap", type=float, default=0.18, help="khoảng lặng giữa câu, giây")
     ap.add_argument("--name", default="VO-en.mp3", help="tên file ghép")
     ap.add_argument("--dry-run", action="store_true", help="chỉ kiểm tra, không gọi API")
+    ap.add_argument("--model", default=MODEL_ID, help=f"mặc định {MODEL_ID}")
+    ap.add_argument("--stability", type=float, default=SETTINGS["stability"])
+    ap.add_argument("--similarity", type=float, default=SETTINGS["similarity_boost"])
+    ap.add_argument("--language", default=LANGUAGE, help='chỉ có tác dụng với eleven_v3; v3 chỉ nhận "en"')
     a = ap.parse_args()
+    settings = {"stability": a.stability, "similarity_boost": a.similarity}
 
     lines = read_lines(a.script)
     chars = sum(len(x) for x in lines)
 
-    long = [(i, l) for i, l in enumerate(lines, 1) if len(l.split()) > WORD_LIMIT]
+    # đếm từ SAU khi bỏ audio tag — tag không phải lời đọc
+    long = [(i, l) for i, l in enumerate(lines, 1)
+            if len(TAG_RE.sub("", l).split()) > WORD_LIMIT]
     if long:
         print(f"CẢNH BÁO: {len(long)} câu dài hơn {WORD_LIMIT} từ — vùng trôi giọng.")
         for i, l in long:
@@ -114,6 +134,8 @@ def main() -> None:
         print("  Nên cắt ngắn rồi chạy lại.\n")
 
     print(f"{len(lines)} câu, {chars} ký tự sẽ tính vào quota ElevenLabs.")
+    print(f"model={a.model} stability={a.stability} similarity={a.similarity} "
+          f"language={a.language if a.model.startswith('eleven_v3') else '(bỏ qua)'}")
     if a.dry_run:
         return
 
@@ -122,7 +144,7 @@ def main() -> None:
     segs = []
     for i, line in enumerate(lines, 1):
         p = os.path.join(a.out, f"seg{i:02d}.mp3")
-        tts(line, key, p)
+        tts(line, key, p, model=a.model, settings=settings, language=a.language)
         segs.append(p)
         print(f"  seg{i:02d}  {duration(p):5.2f}s  {line[:56]}")
 

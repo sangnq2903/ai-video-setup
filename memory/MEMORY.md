@@ -11,3 +11,4 @@
 - [Sony PowerGrade + EXP](sony-powergrade-exp-workflow.md) — "lấy 1.5.1" = PowerGrade still; then tune EXP node to waveform just under 896
 - [Read the skill before acting](read-the-skill-before-acting.md) — the rule was already written down; I generated four unusable takes by not reading it
 - [Hook construction taste](hook-construction-taste.md) — subject close-up first, A-B-A flash, blur out, riser SFX, breath after the hook line
+- [English VO config](english-vo-config.md) — approve the script before any TTS call; eleven_v3 "E2" settings replace turbo_v2

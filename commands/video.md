@@ -7,8 +7,11 @@ Chạy trọn pipeline "AI Edits My Videos for Me" cho folder người dùng đ�
 `$ARGUMENTS` chứa đường dẫn folder, và có thể kèm: nền tảng (Reels/TikTok/Shorts),
 độ dài mong muốn, tông giọng, `text`, `music`, `sfx`, `broll`, `auto`, hoặc `vn-only` / `en-only`.
 
-- Mặc định: **dừng xin duyệt ở 2 chốt** (sau transcript, sau kịch bản).
-- Có `auto`: chạy thẳng không dừng, nhưng vẫn báo cáo đầy đủ ở cuối.
+- Mặc định: **dừng xin duyệt ở 3 chốt** (sau transcript, sau kịch bản, và sau bản
+  dịch tiếng Anh — trước khi gửi lên ElevenLabs).
+- Có `auto`: bỏ chốt 1 và 2, chạy thẳng, vẫn báo cáo đầy đủ ở cuối.
+  **`auto` KHÔNG bỏ được chốt 3** — text tiếng Anh luôn phải được duyệt trước khi
+  thành giọng của người dùng.
 - **Không có đường dẫn trong `$ARGUMENTS`: đó là bình thường, không phải thiếu sót.**
   Người dùng gán thư mục vào phiên (added directory) thay vì dán path. Tự xác định
   folder theo thứ tự:
@@ -506,14 +509,54 @@ Bỏ qua nếu có `vn-only`. Chạy riêng được bằng `en-only` khi bản 
 
 1. Dịch kịch bản đã duyệt sang tiếng Anh — dịch cho tự nhiên với người bản xứ,
    không dịch từng chữ.
-2. `text_to_speech`, model **`eleven_turbo_v2`** (English-only), **voice "Sáng"
-   `xYGgUqVrkXAXMWJZtqgF`** — giọng clone của chính người dùng, đã có sẵn.
-   **Không clone lại.** Đây là **lần duy nhất** trong cả quy trình gọi TTS.
 
-   **Phải là `eleven_turbo_v2`, không phải `eleven_multilingual_v2`** (chốt
-   2026-09-02 sau khi người dùng nghe A/B/C/D). "Sáng" là IVC clone từ giọng
-   tiếng Việt, nên model đa ngữ mượn phoneme tiếng Việt và đọc tiếng Anh ra
-   giọng Nam Á. Model English-only không có bộ phoneme đó.
+   **CHỐT 3 — ĐƯA TEXT CHO NGƯỜI DÙNG DUYỆT TRƯỚC KHI GỌI ELEVENLABS.**
+   Chốt 2026-09-02. Bắt buộc, **kể cả khi có cờ `auto`** — hai chốt kia bỏ được,
+   chốt này thì không.
+
+   In ra **nguyên văn từng dòng sẽ gửi đi**, đánh số theo segment, kèm audio tag
+   nếu có. Không tóm tắt, không "đại khái là" — người dùng phải đọc đúng chuỗi ký
+   tự sắp thành giọng của họ.
+
+   Lý do: đây là **giọng của họ** nói những câu đó. Dịch sai hay chọn từ lệch chỉ
+   lộ ra lúc nghe, mà lúc đó đã tốn quota, và vì tiếng Anh dài ngắn khác tiếng
+   Việt nên sửa một câu là phải **dựng lại toàn bộ điểm cắt**. Đọc trước tốn ba
+   mươi giây, sửa sau tốn cả lượt dựng.
+
+   Đợi duyệt xong mới sang bước 2.
+
+2. `text_to_speech`, **voice "Sáng" `xYGgUqVrkXAXMWJZtqgF`** — giọng clone của
+   chính người dùng, đã có sẵn. **Không clone lại.** Đây là **lần duy nhất**
+   trong cả quy trình gọi TTS.
+
+   **Cấu hình hiện hành — "E2", chốt 2026-09-02 sau khi người dùng nghe 13 bản:**
+
+   ```
+   model eleven_v3 · stability 0.5 · similarity_boost 0.20 · language_code "en"
+   audio tag [British accent] ở MỌI dòng
+   ```
+
+   **Đây là bản thay cho `eleven_turbo_v2`.** turbo_v2 sạch accent nhưng người
+   dùng chê **không có cảm xúc**. `eleven_v3` mở ra hai thứ turbo_v2 không có:
+   `language_code` (ghim phoneme tiếng Anh) và **audio tag** (lấy cảm xúc).
+
+   Ba con số đã đo, đừng đo lại:
+   - `language_code` **chỉ nhận `"en"`** — `"en-GB"` bị API trả 400
+     *"Model 'eleven_v3' does not support language_code 'en-GB'"*.
+   - `stability` của v3 **chỉ nhận 0.0 / 0.5 / 1.0** (Creative / Natural / Robust).
+   - `similarity_boost` **0.20, không phải 0.35.** 0.35 vẫn còn accent Ấn. Càng
+     hạ càng sạch accent nhưng **càng bớt giống giọng người dùng** — 0.20 là chỗ
+     họ chấp nhận. Đừng nâng lên cho "giống hơn", accent quay lại ngay.
+   - **v3 đọc chậm hơn turbo_v2 ~20%** (27,9s so với 23,1s cho cùng 10 câu). Đổi
+     model là phải dựng lại điểm cắt, không thay mỗi file audio.
+   - **v3 không tất định** — cùng text cùng setting, chạy lại ra khác. Câu nào
+     nghe hỏng thì roll lại riêng câu đó, đừng dựng lại cả bài.
+
+   **Audio tag:** `[British accent]` gắn mọi dòng, đó là thứ đuổi accent Ấn. Tag
+   cảm xúc thì theo đúng luật caption — **chỉ gắn ở câu thật sự có cảm xúc**, dòng
+   chỉ dẫn để trơn. Rải tag khắp nơi thì mọi câu đều diễn như nhau, không câu nào
+   nổi. **Chỉ dùng tag đã nghe qua** (`[curious]`, `[pleased]`); tag lạ có nguy cơ
+   bị đọc thành lời.
 
    **BẮT BUỘC đọc TỪNG CÂU NGẮN rồi ghép — không được đọc cả đoạn một lần.**
    Dùng `python3 ~/.claude/scripts/en-vo.py <kichban.txt> -o <folder>/elevenlabs/en`
@@ -526,23 +569,27 @@ Bỏ qua nếu có `vn-only`. Chạy riêng được bằng `en-only` khi bản 
 
    Bảng shot vốn đã chia theo từng ý nên mỗi dòng bảng là một segment — khớp sẵn.
 
-   Nếu gọi tay thay vì dùng script thì **phải truyền đủ 4 tham số này trong MỖI
-   lần gọi** — không được bỏ trống:
+   Nếu gọi tay thay vì dùng script thì **phải truyền đủ setting trong MỖI lần
+   gọi** — không được bỏ trống:
 
    ```
-   stability=0.55  similarity_boost=0.35  style=0  use_speaker_boost=False
+   model_id=eleven_v3  stability=0.5  similarity_boost=0.20  language_code=en
    ```
 
-   Setting này cũng đã lưu làm mặc định của voice trên ElevenLabs, **nhưng MCP
-   tool phớt lờ mặc định đó**: `elevenlabs_mcp/server.py` khai báo
+   Setting lưu làm mặc định của voice trên ElevenLabs **không có tác dụng qua
+   API**: MCP tool phớt lờ nó: `elevenlabs_mcp/server.py` khai báo
    `stability=0.5, similarity_boost=0.75, use_speaker_boost=True` làm default
    của hàm và luôn gửi nguyên khối `voice_settings` lên API. Gọi mà không truyền
    tham số là accent quay lại y như cũ. Mặc định lưu trên voice chỉ có tác dụng
    ở web ElevenLabs.
 
    **Đừng nâng `similarity_boost` hay bật `use_speaker_boost` để giọng "giống
-   hơn"** — hai thứ đó kéo accent quay lại. Bản setting cũ giữ ở
-   `/Volumes/Data/share/voice-tests/accent/sang_settings_BEFORE_20260902.json`.
+   hơn"** — hai thứ đó kéo accent quay lại.
+
+   Script `en-vo.py` đã mặc định sẵn cấu hình E2, và nhận `--model` /
+   `--stability` / `--similarity` / `--language` nếu cần thử lại. Nó tự bỏ
+   `language_code` khi model không phải v3 (turbo_v2 không nhận tham số đó), và
+   đếm giới hạn 12 từ **sau khi bỏ audio tag**.
 3. Xuất ra `<folder>/elevenlabs/en/`.
 4. Nhân bản timeline tiếng Việt thành `<tên> - EN`, thay VO bằng file tiếng Anh.
    **Giữ nguyên timeline tiếng Việt.**
