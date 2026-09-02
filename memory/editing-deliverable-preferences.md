@@ -24,6 +24,11 @@ VO. Verified-real mood tags: `suspense`, `dark`, `happy`, `hopeful`, `euphoric`.
 **How to apply:** don't ask what music they want each time; search this way, send
 2-3 `lqmp3Url` previews, let them pick.
 
+**Music must be Epidemic; SFX need not be (2026-09-02).** The licence argument only
+really binds the music bed. For SFX, search Epidemic first but use a file they already
+have when it fits better — theirs sit loose in `~/Downloads` — and name the source in
+the report. They use SFX untrimmed. See [[hook-construction-taste]].
+
 Related: [[epidemic-sound-mcp]], [[vietnamese-voice-to-instagram-pipeline]]
 
 **Everything optional is OFF by default (2026-09-02).** No music, no SFX, no

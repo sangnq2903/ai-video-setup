@@ -42,8 +42,11 @@ re-confirmed 2026-09-02 that Resolve 20.3.3 has no transition API at all
 (see [[resolve-2033-effects-limits]]) — so leave the hard cut, drop a marker at that
 frame naming the transition I'd use, and say so in the final report.
 
-Open question, not yet settled: their SFX came from `~/Downloads`, not Epidemic Sound,
-while the skill says Epidemic is the only source. Ask before rewriting that rule.
+**Settled 2026-09-02 (they chose this):** music must still come from Epidemic for the
+licence, but **SFX prefers Epidemic without requiring it** — if a file already on their
+machine fits better, use it and say so in the report. Their SFX live loosely in
+`~/Downloads` (whoosh / pop / riser / error), mixed in with ElevenLabs VO renders and
+scraped audio, so check a file before trusting its name. They use SFX **untrimmed**.
 
 Related: [[editing-deliverable-preferences]], [[caption-placement-rule]],
 [[ai-edits-my-videos-project]]

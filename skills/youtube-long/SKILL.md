@@ -412,9 +412,20 @@ Báo cáo cuối liệt kê rõ đã thêm gì và **không thêm gì**, để k
 Không có `music` / `music-auto` / `sfx` thì **bỏ qua toàn bộ mục này**,
 không search, không tải, không đụng server Epidemic.
 
-Server `epidemic-sound` là **nguồn nhạc và tiếng động duy nhất**. Không dùng
-`compose_music` của ElevenLabs — nhạc Epidemic có license đầy đủ cho YouTube và
-Instagram, nhạc AI sinh ra thì không.
+**Nhạc nền: bắt buộc Epidemic.** Không dùng `compose_music` của ElevenLabs — nhạc
+Epidemic có license đầy đủ cho YouTube và Instagram, nhạc AI sinh ra thì không.
+
+**SFX: ưu tiên Epidemic, nhưng được dùng file có sẵn của người dùng** (chốt
+2026-09-02). Tìm `SearchSoundEffects` trước; nếu trong máy đã có file hợp hơn thì
+dùng, và **nói rõ trong báo cáo là lấy từ đâu** — đừng im lặng đổi nguồn.
+
+Kho SFX của người dùng nằm rải trong **`~/Downloads`** — không phải thư mục được
+sắp xếp, chỉ là chỗ đọng lại: `whoosh-*`, `pop_*`, `*-riser-*`, `error_*`,
+`duolingo-wrong`… Trộn lẫn với bản render VO ElevenLabs và audio tải từ mạng, nên
+**nghe/`ffprobe` kiểm trước khi đặt lên timeline**, đừng tin mỗi cái tên file.
+
+Họ dùng file SFX **nguyên độ dài, không cắt** (riser 2,76s ở bản EN
+`tranhtreotuong`) — đừng tự trim SFX cho "vừa khít" trừ khi được bảo.
 
 **Tên tool thật** (đã xác minh bằng gọi thật, khác tên trong tài liệu):
 `SearchRecordings` (nhạc), `SearchSoundEffects` (SFX),
