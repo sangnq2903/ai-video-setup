@@ -16,7 +16,7 @@ File kịch bản: MỖI DÒNG MỘT CÂU NGẮN. Dòng trống bị bỏ qua.
 Dòng bắt đầu bằng # là ghi chú, không đọc.
 """
 from __future__ import annotations   # python3 hệ thống là 3.9, cần cái này cho "dict | None"
-import argparse, json, os, re, subprocess, sys, tempfile, urllib.request
+import argparse, json, os, re, subprocess, sys, tempfile, urllib.request, uuid
 
 VOICE_ID = "xYGgUqVrkXAXMWJZtqgF"          # "Sáng"
 
@@ -24,11 +24,31 @@ VOICE_ID = "xYGgUqVrkXAXMWJZtqgF"          # "Sáng"
 # Thay cho cấu hình turbo_v2 cũ: turbo_v2 sạch accent nhưng KHÔNG có cảm xúc.
 # eleven_v3 mở ra hai thứ turbo_v2 không có: language_code (ghim phoneme tiếng
 # Anh) và audio tag (lấy cảm xúc). Đổi lại v3 đọc chậm hơn ~20%.
+# ĐƯỜNG MẶC ĐỊNH = STS ("S1"), người dùng chốt 2026-09-02.
+# Một giọng Anh-Anh bản xứ đọc câu với cảm xúc, rồi convert sang giọng "Sáng".
+# Cảm xúc + nhịp lấy từ bản diễn nguồn; timbre lấy từ clone. Model STS là
+# English-only nên không có phoneme Việt để mượn -> hết accent Ấn.
+#
+# Vì sao không phải TTS thẳng: eleven_turbo_v2 có can_use_style=False và
+# can_use_speaker_boost=False (đo qua /v1/models) -> KHÔNG có knob cảm xúc nào.
+# eleven_v3 có tag cảm xúc nhưng không tất định và đọc chậm hơn ~20%.
+VIA_VOICE = "JBFqnCBsd6RMkjVDRZzb"          # George, premade, british male
+VIA_MODEL = "eleven_turbo_v2"
+VIA_SETTINGS = {"stability": 0.4, "similarity_boost": 0.75}
+STS_MODEL = "eleven_english_sts_v2"
+STS_SETTINGS = {                            # cấu hình S1
+    "stability": 0.5,
+    "similarity_boost": 0.35,
+    "style": 0.0,
+    "use_speaker_boost": False,
+}
+
+# Đường TTS thẳng, chỉ dùng khi chạy với --no-via.
 MODEL_ID = "eleven_v3"
 LANGUAGE = "en"                             # v3 CHỈ nhận "en"; "en-GB" bị API từ chối
 SETTINGS = {
     "stability": 0.5,                       # v3 chỉ nhận 0.0 / 0.5 / 1.0
-    "similarity_boost": 0.20,               # 0.35 còn dính accent Ấn; 0.20 sạch hơn, bớt giống Sáng
+    "similarity_boost": 0.20,
 }
 
 # Cấu hình cũ, giữ lại để so sánh: --model eleven_turbo_v2 --stability 0.55
@@ -56,7 +76,8 @@ def read_lines(path: str) -> list[str]:
 
 
 def tts(text: str, key: str, dest: str, model: str = MODEL_ID,
-        settings: dict | None = None, language: str | None = LANGUAGE) -> None:
+        settings: dict | None = None, language: str | None = LANGUAGE,
+        voice: str = VOICE_ID) -> None:
     payload = {
         "text": text,
         "model_id": model,
@@ -67,11 +88,34 @@ def tts(text: str, key: str, dest: str, model: str = MODEL_ID,
         payload["language_code"] = language
     body = json.dumps(payload).encode()
     req = urllib.request.Request(
-        f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}?output_format=mp3_44100_128",
+        f"https://api.elevenlabs.io/v1/text-to-speech/{voice}?output_format=mp3_44100_128",
         data=body,
         headers={"xi-api-key": key, "Content-Type": "application/json"},
     )
     with urllib.request.urlopen(req, timeout=120) as r, open(dest, "wb") as out:
+        out.write(r.read())
+
+
+def sts(src: str, key: str, dest: str, settings: dict) -> None:
+    """Convert bản diễn nguồn sang giọng đích. Giữ NGUYÊN nhịp của bản nguồn."""
+    boundary = "----" + uuid.uuid4().hex
+    parts = []
+    for k, v in (("model_id", STS_MODEL),
+                 ("voice_settings", json.dumps(settings)),
+                 ("remove_background_noise", "true")):
+        parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode())
+    parts.append(f'--{boundary}\r\nContent-Disposition: form-data; '
+                 f'name="audio"; filename="{os.path.basename(src)}"\r\n'
+                 f'Content-Type: audio/mpeg\r\n\r\n'.encode())
+    parts.append(open(src, "rb").read() + b"\r\n")
+    parts.append(f"--{boundary}--\r\n".encode())
+    req = urllib.request.Request(
+        f"https://api.elevenlabs.io/v1/speech-to-speech/{VOICE_ID}?output_format=mp3_44100_128",
+        data=b"".join(parts),
+        headers={"xi-api-key": key,
+                 "Content-Type": f"multipart/form-data; boundary={boundary}"},
+    )
+    with urllib.request.urlopen(req, timeout=300) as r, open(dest, "wb") as out:
         out.write(r.read())
 
 
@@ -118,8 +162,14 @@ def main() -> None:
     ap.add_argument("--stability", type=float, default=SETTINGS["stability"])
     ap.add_argument("--similarity", type=float, default=SETTINGS["similarity_boost"])
     ap.add_argument("--language", default=LANGUAGE, help='chỉ có tác dụng với eleven_v3; v3 chỉ nhận "en"')
+    ap.add_argument("--via", default=VIA_VOICE,
+                    help="voice_id đọc bản diễn nguồn rồi convert sang giọng đích (mặc định: George)")
+    ap.add_argument("--no-via", action="store_true",
+                    help="bỏ đường STS, gọi TTS thẳng bằng --model")
+    ap.add_argument("--style", type=float, default=STS_SETTINGS["style"], help="chỉ dùng cho STS")
     a = ap.parse_args()
     settings = {"stability": a.stability, "similarity_boost": a.similarity}
+    sts_settings = dict(STS_SETTINGS, style=a.style)
 
     lines = read_lines(a.script)
     chars = sum(len(x) for x in lines)
@@ -134,8 +184,14 @@ def main() -> None:
         print("  Nên cắt ngắn rồi chạy lại.\n")
 
     print(f"{len(lines)} câu, {chars} ký tự sẽ tính vào quota ElevenLabs.")
-    print(f"model={a.model} stability={a.stability} similarity={a.similarity} "
-          f"language={a.language if a.model.startswith('eleven_v3') else '(bỏ qua)'}")
+    if a.no_via:
+        print(f"TTS thẳng: model={a.model} stability={a.stability} "
+              f"similarity={a.similarity} "
+              f"language={a.language if a.model.startswith('eleven_v3') else '(bỏ qua)'}")
+    else:
+        print(f"STS: {a.via} ({VIA_MODEL}) -> {VOICE_ID} ({STS_MODEL}), "
+              f"style={sts_settings['style']} similarity={sts_settings['similarity_boost']}")
+        print("     nhịp và độ dài do bản diễn nguồn quyết định, STS không co giãn.")
     if a.dry_run:
         return
 
@@ -144,7 +200,13 @@ def main() -> None:
     segs = []
     for i, line in enumerate(lines, 1):
         p = os.path.join(a.out, f"seg{i:02d}.mp3")
-        tts(line, key, p, model=a.model, settings=settings, language=a.language)
+        if a.no_via:
+            tts(line, key, p, model=a.model, settings=settings, language=a.language)
+        else:
+            src = os.path.join(a.out, f"src{i:02d}.mp3")
+            tts(line, key, src, model=VIA_MODEL, settings=VIA_SETTINGS,
+                language=None, voice=a.via)
+            sts(src, key, p, sts_settings)
         segs.append(p)
         print(f"  seg{i:02d}  {duration(p):5.2f}s  {line[:56]}")
 
