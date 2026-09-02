@@ -1,0 +1,154 @@
+diff --git a/src/server.py b/src/server.py
+index 9832fba..f26ba1b 100644
+--- a/src/server.py
++++ b/src/server.py
+@@ -13811,6 +13811,25 @@ def _playhead_frame_render(proj, tl, p: Dict[str, Any]):
+                 state={"folder": folder, "frame": frame},
+             )
+         src_path = os.path.join(folder, written[0])
++
++        keep_path = p.get("out_path")
++        if keep_path:
++            # Measuring a grade needs the RENDERED pixels as a file — ffmpeg
++            # signalstats on YMAX/UAVG/VAVG, say. Without this the only route to
++            # one is gallery_stills.grab_and_export, which fails unless a human
++            # has the Gallery panel open on the Color page.
++            keep_path = os.path.expanduser(str(keep_path))
++            try:
++                os.makedirs(os.path.dirname(keep_path) or ".", exist_ok=True)
++                shutil.copyfile(src_path, keep_path)
++            except OSError as exc:
++                return _err(
++                    f"Could not write the frame to {keep_path}: {exc}",
++                    code="FRAME_WRITE_FAILED", category="filesystem",
++                    remediation="Pass an out_path in a directory this process can write to.",
++                )
++            return {"saved": keep_path, "frame": frame, "format": fmt}
++
+         out_format = "jpg" if fmt == "jpg" else "png"
+         if max_width or fmt == "tif":
+             data, ff_err = _ffmpeg_scale_to_bytes(src_path, int(max_width) if max_width else None, out_format)
+@@ -23936,6 +23955,14 @@ def timeline_frame(action: str, params: Optional[Dict[str, Any]] = None) -> Any:
+       capabilities() -> {quality_modes, ffmpeg, render_settings_restorable, ...}
+ 
+     capture parameters:
++      out_path     Save the rendered frame to this path and return
++                   {saved, frame, format} instead of an inline image. Use it when
++                   the frame has to be MEASURED rather than looked at — e.g.
++                   `ffmpeg -i <path> -vf signalstats` for YMAX/UAVG/VAVG when
++                   dialling exposure or white balance. Without it the frame is
++                   inlined and the temp render is deleted, and the only other route
++                   to a file is gallery_stills.grab_and_export, which needs a human
++                   to have the Gallery panel open on the Color page.
+       timecode     Absolute ('01:00:15:12') or elapsed ('00:00:15:12') timeline
+                    timecode. Omit to capture the current playhead.
+       frame        Alternative to timecode: absolute timeline frame number.
+@@ -26149,16 +26176,30 @@ def gallery(action: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, A
+ def gallery_stills(action: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+     """Manage stills in gallery albums (best results on Color page).
+ 
++    Every action accepts the same album selectors: album_type?, album_name?, album_index?
++
+     Actions:
+-      get_stills(album_index?) -> {count}
+-      get_label(still_index, album_index?) -> {label}
+-      set_label(still_index, label, album_index?) -> {success}
+-      import_stills(paths, album_index?) -> {success}
+-      export_stills(folder_path, prefix?, format?, album_index?) -> {success}
+-      grab_and_export(folder_path, prefix?, format?, album_index?, delete_after?, cleanup?) -> {files}
+-      delete_stills(still_indices, album_index?) -> {success}
+-
+-    album_index defaults to current album. still_index is 0-based.
++      get_stills(...) -> {count}
++      get_label(still_index, ...) -> {label}
++      set_label(still_index, label, ...) -> {success}
++      import_stills(paths, ...) -> {success}
++      export_stills(folder_path, prefix?, format?, ...) -> {success}
++      grab_and_export(folder_path, prefix?, format?, delete_after?, cleanup?, ...) -> {files}
++      delete_stills(still_indices, ...) -> {success}
++
++    Selecting the album:
++      album_type   "still" (default) or "power_grade". PowerGrade albums hold the
++                   saved looks a colourist reuses across projects; they are a
++                   separate list from still albums and are NOT reachable by index
++                   into the still albums (that returns "Album index out of range").
++      album_name   Select by name, e.g. "Sony". Beats album_index — an album's
++                   position shifts when albums are added, its name does not. An
++                   unknown name errors with the available names.
++      album_index  0-based into the chosen album_type's list.
++      With none of them: the current still album, or the first PowerGrade album
++      when album_type="power_grade" (the API exposes no "current" PowerGrade album).
++
++    still_index is 0-based.
+     format for export: dpx, cin, tif, jpg, png, ppm, bmp, xpm, drx (default: dpx).
+     grab_and_export grabs a still from the current frame and exports it immediately,
+     keeping the live GalleryStill reference (more reliable than separate grab + export).
+@@ -26186,20 +26227,62 @@ def gallery_stills(action: str, params: Optional[Dict[str, Any]] = None) -> Dict
+     if not gal:
+         return _err("Gallery not available")
+ 
+-    album_idx = p.get("album_index")
+-    if album_idx is not None:
++    album_type = str(p.get("album_type") or "still").strip().lower()
++    if album_type not in ("still", "power_grade"):
++        return _err(
++            f"Unknown album_type {album_type!r}",
++            category="invalid_params",
++            remediation="album_type must be 'still' (default) or 'power_grade'.",
++        )
++
++    if album_type == "power_grade":
++        albums = gal.GetGalleryPowerGradeAlbums() or []
++    else:
+         albums = gal.GetGalleryStillAlbums() or []
+-        if album_idx < len(albums):
++    def _names():
++        # Only resolved when a name is asked for or an error has to be explained:
++        # GetAlbumName is a round trip per album, and the common path needs none.
++        getter = getattr(gal, "GetAlbumName", None)
++        if not getter:
++            return []
++        return [getter(a) for a in albums]
++
++    album_name = p.get("album_name")
++    album_idx = p.get("album_index")
++    if album_name is not None:
++        # Name beats index: a PowerGrade album is identified by what the user
++        # calls it ("Sony"), and its position moves when albums are added.
++        names = _names()
++        try:
++            album = albums[names.index(album_name)]
++        except ValueError:
++            return _err(
++                f"No {album_type} album named {album_name!r}",
++                category="invalid_params",
++                remediation=f"Available {album_type} albums: {names or 'none'}.",
++            )
++    elif album_idx is not None:
++        if 0 <= album_idx < len(albums):
+             album = albums[album_idx]
+         else:
+-            return _err("Album index out of range")
++            return _err(
++                "Album index out of range",
++                category="invalid_params",
++                remediation=(
++                    f"{len(albums)} {album_type} album(s) exist: {_names() or 'none'}. "
++                    "Pass album_name to select by name, or album_type='power_grade' "
++                    "for PowerGrade albums."
++                ),
++            )
++    elif album_type == "power_grade":
++        # There is no "current" PowerGrade album in the API — fall back to the first.
++        album = albums[0] if albums else None
+     else:
+         album = gal.GetCurrentStillAlbum()
+         if not album:
+-            albums = gal.GetGalleryStillAlbums() or []
+             album = albums[0] if albums else None
+     if not album:
+-        return _err("No still album available")
++        return _err(f"No {album_type} album available")
+ 
+     if action == "get_stills":
+         stills = album.GetStills() or []

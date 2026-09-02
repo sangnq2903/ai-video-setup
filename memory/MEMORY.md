@@ -1,0 +1,12 @@
+- [AI Edits My Videos for Me](ai-edits-my-videos-project.md) — how footage/script arrive; never touch the human reference timeline
+- [Gear A6700 footage facts](gear-a6700-footage-facts.md) — silent, portrait-flagged clips; where each gear item is covered; ffmpeg 9.0.1 IS installed (correction inside)
+- [Dark cinematic CDL look](dark-cinematic-cdl-look.md) — exact CDL values accepted for the Gear A6700 cut, and why
+- [Resolve 20.3.3 effects limits](resolve-2033-effects-limits.md) — no transitions/transform keyframes, Fusion renders empty, and insert_title RIPPLE-DESTROYS the cut; burn captions post-render instead
+- [Vietnamese voice → Instagram pipeline](vietnamese-voice-to-instagram-pipeline.md) — the 4-step flow: user's voice recording drives script, cut, and English repost
+- [ElevenLabs MCP setup](elevenlabs-mcp-setup.md) — venv location, .mcp.json entry, output base path
+- [Epidemic Sound MCP](epidemic-sound-mcp.md) — remote HTTP server, OAuth or 1-year API key; replaced ElevenLabs music for licensing
+- [Editing & deliverable preferences](editing-deliverable-preferences.md) — stop at the timeline, never render; music = curious + exciting, no vocals
+- [B-roll gap mode](broll-gap-mode.md) — one long take: mark B-roll spots, blank picture, keep audio; TikTok 30–45s / YouTube 4–10min
+- [Timeline & render defaults](timeline-and-render-defaults.md) — Full HD 30fps timeline, 4K/20000 render job queued but never started
+- [Sony PowerGrade + EXP](sony-powergrade-exp-workflow.md) — "lấy 1.5.1" = PowerGrade still; then tune EXP node to waveform just under 896
+- [Read the skill before acting](read-the-skill-before-acting.md) — the rule was already written down; I generated four unusable takes by not reading it
