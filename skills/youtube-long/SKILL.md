@@ -134,63 +134,78 @@ Xuất danh sách dán thẳng vào mô tả, dạng `0:00 Tên chương`. Luậ
 Không đủ điều kiện thì chapters sẽ không hiện — **báo người dùng**, đừng xuất danh
 sách hỏng rồi coi như xong.
 
+### Dựng cut: `end_frame` EXCLUSIVE, và dùng `mediaType` khi cần
+
+**Đây là lỗi đã vấp 2026-09-04, người dùng bắt được, phải sửa lại cả timeline.**
+
+`end_frame` trong `create_timeline_from_clips` và `append_to_timeline` là
+**EXCLUSIVE**. Muốn clip dài N frame từ source S thì truyền `end_frame = S + N`.
+Truyền `S + N - 1` thì clip **ngắn đi 1 frame**, nhưng `record_frame` vẫn được tôn
+trọng nguyên — kết quả là **một khoảng trống 1 frame ở MỌI điểm cắt**, và lệnh vẫn
+báo `success: true`.
+
+**Luôn chạy `timeline detect_gaps_overlaps` sau khi dựng xong.** `gap_count: 0` trên
+V1 mới là dựng đúng. Gap trên track text thì bình thường — caption vốn rời nhau.
+
+**`mediaType` khi track audio đã có sẵn item:** clip Video+Audio append vào V1 sẽ
+kéo theo audio, và nếu A1 đang bận thì cả lệnh **thất bại** với
+`missing timeline item at index 0` — thông báo không hề nói tới audio. Chỉ cần hình
+thì truyền **`mediaType: 1`**. Chỉ cần tiếng thì `mediaType: 2`.
+
+**Tiếng máy quay:** cut này dùng VO riêng nên tiếng camera là rác — **xoá hẳn khỏi
+A1**, đừng chỉ tắt track. Tắt track còn làm hỏng lệnh append sau đó.
+
 ## Text động trên timeline — CÔNG THỨC ĐÃ CHỨNG MINH (2026-09-02)
 
-**Chỉ làm khi có `text`** — mặc định là không thêm chữ. Không có thì bỏ qua toàn bộ mục này.
+### Caption phải HIỆN XONG đúng lúc từ khoá tới — không phải bắt đầu ở đó
 
-Chạy thật trên 20.3.3, chứng minh bằng frame render. Không còn là giả thiết.
+**Chốt 2026-09-04, sau hai lần đặt sai liên tiếp.**
 
-### Đặt chữ Ở ĐÂU — chỉ chỗ có sản phẩm, thông số, hoặc điểm nhấn
+Caption cần thời gian để hiện. Chữ chạy stagger từng ký tự nên mất
+**≈ số ký tự × `Delay` + ramp**. Với `Delay 1` và ramp mặc định 20 thì một caption
+20 ký tự mất **40 frame** mới hiện đủ.
 
-**Không rải chữ suốt bài.** Có cờ `text` không có nghĩa là mọi đoạn đều được một
-caption. Chốt 2026-09-02, sau khi bản EN `tranhtreotuong` dựng 9 caption cho 9 đoạn
-và người dùng bắt cắt xuống còn 4.
+Neo vào lúc từ khoá bắt đầu là **muộn** — khi lời tới, chữ mới hiện được một phần.
+Người xem nghe xong rồi mà mắt vẫn thấy chữ đang bò ra.
 
-Đặt caption khi đoạn đó có **một trong ba** thứ:
+**Thời gian chữ hiện xong: ĐO, đừng tính.** Công thức "số ký tự + ramp" tôi suy ra
+là **sai gần gấp đôi**. Đo thật 2026-09-04 trên preset `Word Slide Up + Fade`,
+`Delay 1`, caption 21 ký tự: đặt ở frame 240, chụp frame 258 chữ còn đang mờ vào,
+frame 265 đã đủ → **hiện xong sau ~23 frame**, không phải 41.
 
-| Đặt chữ | Ví dụ thật |
-|---|---|
-| **Tên sản phẩm / công cụ cụ thể** | `Nano double-sided tape`, `Made with ChatGPT` |
-| **Thông số, cách làm, con số** | `Fixed wall mount`, `CRI 97 · 1200 lumens` |
-| **Điểm nhấn** — hook mạnh, CTA, câu chốt | `Try it yourself` |
+Xấp xỉ dùng được: **anim ≈ số ký tự + 3** với ramp mặc định.
 
-Bỏ qua đoạn chỉ **kể chuyện, dẫn dắt, hay tả cảm xúc** — bối cảnh, "kết quả khá ưng
-ý", "sau khi hoàn thành đây là góc làm việc". Ở những đoạn đó hình đã nói đủ; đặt chữ
-vào chỉ là chép lại lời thoại lên màn hình, người xem đọc một thứ họ đang nghe.
+Nhưng preset khác nhau chạy khác nhau. Cách đúng: đặt caption đầu tiên, **chụp hai
+frame để tìm chỗ chữ vừa hiện đủ**, lấy số đó làm `anim` cho cả bài. Một lần đo
+thay cho bốn lần đoán.
 
-Hệ quả về cách viết chữ: caption **gọi tên món đồ**, không tóm tắt đoạn.
-`Nano double-sided tape` chứ không phải `Small: nano tape`; `Made with ChatGPT` chứ
-không phải `Asked ChatGPT`.
+**Công thức:**
 
-Tỉ lệ thường thấy với video dài: **khoảng 1 caption mỗi 45–60 giây**, dồn vào chỗ
-gọi tên đồ hoặc đọc thông số. Dày hơn thì gần như chắc chắn là đang rải chữ. Báo cáo cuối phải nói rõ **giữ mấy cái, bỏ mấy cái, và bỏ
-đoạn nào** — để người dùng biết đó là lựa chọn, không phải làm thiếu.
+```
+frame_đặt = frame_từ_khoá − (số_ký_tự × Delay + ramp)
+```
 
-### Làm THẾ NÀO — công thức 6 bước
+Đo thật trên cut tranhtreotuong:
 
-**TUYỆT ĐỐI KHÔNG dùng `insert_title`** — nó ripple insert trên V1, đẩy lệch cả cut,
-rồi vẫn báo `success: true`.
+| Caption | Ký tự | Hiện xong sau | Từ khoá ở frame | Đặt ở |
+|---|---|---|---|---|
+| Tạo hình bằng ChatGPT | 21 | 41f | 281 | 240 |
+| Giá treo cố định | 16 | 36f | 509 | 473 |
+| Băng keo Nano 2 mặt | 19 | 39f | 556 | 517 |
+| Thử cho góc của bạn | 19 | 27f (ramp 8) | 731 | 704 |
 
-Mỗi text làm theo đúng 6 bước này:
+Người dùng tự kéo caption 2 về **478** trước khi tôi tính ra **473** — hai con số gần
+trùng, đó là xác nhận công thức đúng.
 
-1. `media_pool create_timeline` → timeline con riêng cho text đó.
-2. `timeline insert_fusion_title` với name **`"Text+"`** → rơi V1 của timeline con.
-3. `fusion_comp set_input` tool **`Template`**, input `StyledText` → nội dung chữ.
-4. `fusion_comp add_keyframe` trên `Template` để tạo hiệu ứng.
-   **Thời gian là CLIP-RELATIVE**: time 0 = frame đầu của text, không phải frame
-   tuyệt đối của timeline. Input động được: `Size`, `Opacity`, `Transform1Offset`…
-5. `timeline get_media_pool_item` (khi timeline con đang là current) → lấy id.
-6. `media_pool append_to_timeline` với
-   `{media_pool_item_id, start_frame: 0, end_frame: <độ dài-1>, trackIndex: 2,
-   recordFrame: <frame muốn đặt>}`.
-   **`start_frame`/`end_frame` là BẮT BUỘC** — thiếu là lỗi ngay.
+**Độ dài caption:** giữ trên hình tới hết cụm từ + khoảng 15 frame. Lấy `end` của từ
+cuối trong cụm từ `words[]`.
 
-**Chứng minh động:** `timeline_frame capture` hai lần ở hai thời điểm khác nhau
-CỦA CÙNG text, đặt `max_width: 400` cho nhẹ. Hai frame phải khác nhau nhìn thấy được.
-Làm 1 cái đầu tiên phải chứng minh; các cái sau cùng công thức thì không cần lặp lại.
+**Khi hai cụm từ khoá quá gần nhau:** đoạn "giá treo / băng keo Nano" có hai cụm cách
+nhau 47 frame trong khi mỗi caption cần 36–39 frame để hiện. Không đủ chỗ cho cả hai
+chạy trọn — phải **nén ramp xuống 8** hoặc chấp nhận caption trước tắt sớm. Đừng để
+chúng chồng lên nhau: hai item trên cùng một track là lỗi.
 
-Video dài có nhiều text hơn short-form. Mỗi text = một timeline con. **Báo số lượng
-trước khi chạy**, đừng lẳng lặng tạo 50 timeline con.
+**Tự kiểm:** `frame_đặt + thời_gian_hiện ≤ frame_từ_khoá`. Vi phạm là caption muộn.
 
 ## Hiệu ứng text: DÙNG PRESET DỰNG SẴN, đừng tự keyframe
 
