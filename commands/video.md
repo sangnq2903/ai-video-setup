@@ -89,22 +89,11 @@ Mỗi đoạn gồm đủ bốn cột:
 | **Ý** | Đoạn này đang nói gì — một cụm ngắn, dùng làm tên marker |
 | **Cảnh quay** | **Quay/dùng cảnh gì cho đoạn này** |
 
-**CẢNH BÁO — timecode chỉ gần đúng (đo 2026-09-02):** tool `speech_to_text` của
-ElevenLabs MCP chỉ trả về `transcription.text`, **vứt bỏ `start`/`end` của từng từ**
-mà API vốn có. `format_diarized_transcript` cũng vậy. Không có đường nào lấy
-timestamp thật.
-
-Đường thay thế đã đo trên `voice.mov` (28,5 giây):
-`ffmpeg -af silencedetect=n=-32dB:d=0.35` → ra **9 đoạn nói**, trong khi transcript
-có **8 câu**. Gần khớp nhưng **không 1:1** — vài khoảng lặng là ngắt giữa câu, và
-`d=0.5` thì gộp quá tay còn 6 đoạn. Việc gán câu vào đoạn phải dùng phán đoán theo
-độ dài câu.
-
-Hệ quả: **sai số khoảng ±0,5 giây.**
-
-- Đủ tốt cho **bảng cảnh quay** và **marker** — lệch nửa giây không ảnh hưởng.
-- **KHÔNG đủ** cho phụ đề chạy theo lời. Nếu người dùng bật `text` và cần chữ khớp
-  từng câu, **nói rõ giới hạn này trước**, đừng để họ phát hiện khi xem lại.
+**Timecode:** ưu tiên **REST API** `POST https://api.elevenlabs.io/v1/speech-to-text`
+(`model_id=scribe_v1`, `timestamps_granularity=word`) — trả `words[]` có `start`/`end`
+thật, không sai số. MCP tool `speech_to_text` vứt bỏ chúng, nên **đừng dùng nó khi cần
+mốc thời gian**. Không gọi được REST thì mới dò `ffmpeg -af silencedetect`, và khi đó
+sai số ±0,5 giây — đủ cho bảng cảnh quay và marker, **không đủ cho phụ đề**.
 
 Cột "Cảnh quay" viết theo hai kiểu tuỳ tình huống:
 

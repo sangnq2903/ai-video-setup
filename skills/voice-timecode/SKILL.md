@@ -24,27 +24,34 @@ Nếu là thư mục: tìm file thu âm — thường là file audio-only, hoặ
 
 `speech_to_text` của ElevenLabs, `language_code` theo ngôn ngữ thật của file.
 
-## Bước 2 — Dò mốc thời gian
+## Bước 2 — Lấy mốc thời gian
 
-**Timestamp KHÔNG lấy được từ ElevenLabs.** Tool chỉ trả `transcription.text` và
-vứt bỏ `start`/`end` của từng từ mà API vốn có; `format_diarized_transcript` cũng
-vậy. Đo và xác nhận 2026-09-02. Đừng mất công tìm tham số — không có.
+**Ưu tiên REST API — nó trả timestamp THẬT của từng từ.** MCP tool `speech_to_text`
+vứt bỏ `start`/`end`, nhưng endpoint gốc thì giữ:
 
-Dùng ffmpeg (nhớ `export PATH="/opt/homebrew/bin:$PATH";` trước):
+```
+POST https://api.elevenlabs.io/v1/speech-to-text
+multipart, model_id=scribe_v1, language_code=vie, timestamps_granularity=word
+```
+
+Trả về mảng `words[]`, mỗi từ có `start` và `end`. Đo 2026-09-02: 153 từ trong
+31,54 giây, chia sạch thành 12 câu với điểm vào–ra chính xác. **Không sai số.**
+
+Key đọc lúc chạy từ `mcpServers.elevenlabs.env.ELEVENLABS_API_KEY` trong
+`/Volumes/Data/davinci-resolve-mcp/.mcp.json` — cùng nguồn `en-vo.py` dùng.
+
+### Chỉ khi không gọi được REST: dò khoảng lặng
 
 ```
 ffmpeg -hide_banner -i <file> -af silencedetect=n=-32dB:d=0.35 -f null - 2>&1 \
   | grep -oE "silence_(start|end): [0-9.]+"
 ```
 
-Khoảng giữa hai lần lặng là một **đoạn nói**. `d=0.35` là điểm khởi đầu tốt:
+Khoảng giữa hai lần lặng là một đoạn nói. Chỉnh `d`: ra nhiều đoạn hơn số câu thì
+nâng lên 0.4–0.5, ít hơn thì hạ xuống 0.25–0.3. Thu ồn thì hạ ngưỡng dB.
 
-- Ra **nhiều đoạn hơn số câu** → có ngắt giữa câu. Nâng `d` lên 0.4–0.5.
-- Ra **ít đoạn hơn số câu** → hai câu dính nhau. Hạ `d` xuống 0.25–0.3.
-- Thu ồn nền → hạ ngưỡng dB, thử `-38dB` hoặc `-42dB`.
-
-Chỉnh vài lần cho số đoạn gần số câu nhất rồi dừng. **Không bao giờ khớp hoàn hảo** —
-đó là bản chất của phương pháp, không phải lỗi cần sửa tiếp.
+**Đường này sai số ±0,5 giây** vì mốc suy từ khoảng lặng chứ không phải từ từng từ.
+Đủ cho bảng cảnh quay và marker, **không đủ cho phụ đề**. Dùng REST thì hết vấn đề này.
 
 ## Bước 3 — Gán câu vào đoạn
 
@@ -84,13 +91,13 @@ Lưu thêm bảng ra file cạnh nguồn (`<tên>_timecode.md`) nếu họ muố
 
 ## Nói thẳng về sai số
 
-**Timecode chỉ gần đúng, sai số khoảng ±0,5 giây.** Nó suy ra từ khoảng lặng chứ
-không phải từ mốc thật của từng từ.
+Đi bằng **REST** thì timecode chính xác tới từng từ — dùng cho phụ đề cũng được.
 
-- Đủ tốt: lên khung nội dung, chia đoạn, bảng cảnh quay, cắm marker.
-- **Không đủ:** phụ đề chạy theo lời, hay bất cứ thứ gì cần khớp từng chữ.
+Đi bằng **silencedetect** thì sai số **±0,5 giây**: đủ cho lên khung, chia đoạn và
+cắm marker, **không đủ cho phụ đề**. Rơi vào đường này mà người dùng định làm phụ đề
+thì **báo trước**.
 
-Nếu người dùng định dùng cho phụ đề, **báo trước**, đừng để họ phát hiện lúc xem lại.
+Báo cáo luôn ghi rõ đã đi đường nào.
 
 ## Ranh giới
 

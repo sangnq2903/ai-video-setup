@@ -12,3 +12,7 @@
 - [Read the skill before acting](read-the-skill-before-acting.md) — the rule was already written down; I generated four unusable takes by not reading it
 - [Hook construction taste](hook-construction-taste.md) — subject close-up first, A-B-A flash, blur out, riser SFX, breath after the hook line
 - [English VO config](english-vo-config.md) — approve the script before any TTS call; eleven_v3 "E2" settings replace turbo_v2
+- [Caption placement rule](caption-placement-rule.md) — with `text` on, captions only on product/spec/emphasis beats, never wall-to-wall
+- [ElevenLabs STT timestamps](elevenlabs-stt-timestamps.md) — the REST endpoint returns real word-level timestamps; silencedetect is only a fallback
+- [Handoff layers they add back](handoff-layers-they-add-back.md) — the same four layers get added by hand every time; offer them at handoff
+- [Resolve frame conventions](resolve-frame-conventions.md) — exclusive end_frame, relative vs absolute record frames, zoom values don't port
