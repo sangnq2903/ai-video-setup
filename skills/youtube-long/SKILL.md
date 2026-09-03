@@ -207,6 +207,24 @@ chúng chồng lên nhau: hai item trên cùng một track là lỗi.
 
 **Tự kiểm:** `frame_đặt + thời_gian_hiện ≤ frame_từ_khoá`. Vi phạm là caption muộn.
 
+#### Mỗi caption PHẢI có một tiếng động đi kèm
+
+**Chốt 2026-09-04.** Có `text` là **tự động có SFX cho từng caption** — không cần cờ
+`sfx` riêng. Chữ hiện lên câm là thiếu, không phải là tối giản.
+
+- **Một SFX cho mỗi caption**, đặt ở **đúng frame caption bắt đầu** (lúc chữ bắt đầu
+  chạy, không phải lúc chữ hiện xong).
+- Đặt xuống **một track audio riêng** — không trộn với VO hay tiếng source.
+- **Dùng nguyên độ dài file, không cắt** (xem mục Nhạc & SFX).
+- Loại tiếng: `pop` / `whoosh` / `tick` ngắn cho caption thường; caption CTA hoặc câu
+  chốt thì được dùng tiếng dày hơn.
+- **Không dùng cùng một file cho mọi caption** — nghe ra ngay là lặp. Xoay vòng như
+  xoay vòng preset chữ.
+
+Nguồn: `SearchSoundEffects` của Epidemic trước; kho `~/Downloads` của người dùng
+(`whoosh-*`, `pop_*`, `*-riser-*`) dùng được, nhưng **phải nói rõ trong báo cáo lấy
+từ đâu**.
+
 ## Hiệu ứng text: DÙNG PRESET DỰNG SẴN, đừng tự keyframe
 
 Resolve có **113 title template dựng sẵn** trong
@@ -395,7 +413,7 @@ với việc họ gõ thêm một từ.
 
 | Từ khoá | Thêm gì |
 |---|---|
-| `text` | Text động trên timeline (preset + cân tốc độ theo lời nói) — **chỉ đặt ở đoạn có sản phẩm, thông số, hoặc điểm nhấn**, xem mục "Đặt chữ Ở ĐÂU" |
+| `text` | Text động trên timeline — **chỉ ở đoạn có sản phẩm, thông số, hoặc điểm nhấn**. Kéo theo **một SFX cho mỗi caption**, tự động |
 | `music` | Nhạc nền từ Epidemic Sound — gửi 2–3 link nghe thử, người dùng chọn |
 | `music-auto` | Nhạc nền, tự chọn bài hợp gu, khỏi gửi preview |
 | `sfx` | Tiếng động điểm nhấn |

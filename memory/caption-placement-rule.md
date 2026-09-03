@@ -100,3 +100,17 @@ has just finished**, and use that measured number for the rest of the cut. One
 measurement instead of four guesses — this took four correction rounds from the user
 before I stopped estimating.
 
+## Every caption carries a sound effect (2026-09-04)
+
+`text` now implies SFX — no separate `sfx` flag needed for captions. A caption that
+appears silently is incomplete, not minimal.
+
+One effect per caption, placed at the frame the caption **starts animating** (not
+where it finishes), on its own audio track, used at full file length. Short
+`pop`/`whoosh`/`tick` for ordinary captions; something fuller for the CTA or closing
+line. **Never the same file twice in one cut** — rotate them the way the text presets
+rotate.
+
+Source: Epidemic `SearchSoundEffects` first; the user's own `~/Downloads` library
+(`whoosh-*`, `pop_*`, `*-riser-*`) is allowed, but say in the report which was used.
+
