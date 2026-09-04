@@ -272,3 +272,26 @@ sentence ends: `Delay = (spoken frames − ramp) / character count`, min 1, usin
 "Thử cho góc của bạn": frame 48 before, **frame 22 after** — stagger and bounce
 both preserved.
 
+## Adjustment clips: creatable, not placeable (2026-09-04)
+
+`timeline insert_generator("Adjustment Clip")` **works** — it produces a 150-frame
+adjustment clip. But it lands on **V1**, where the cut lives, and the six
+`Insert*IntoTimeline` methods take no `trackIndex`.
+
+Tried locking V1 and V2 to force it onto V3: the call **fails**
+(`Failed to insert generator`) rather than moving up — the same result already
+measured for titles. The nested-timeline workaround does not transfer: nesting an
+adjustment clip turns it into an ordinary clip and it stops grading the tracks below.
+`MoveClips` only moves media-pool clips between bins, not timeline items between
+tracks.
+
+**So adjustment clips are a manual step.** What to do instead: create the empty V3
+track and drop markers at the grade layer's start and split — measured on the user's
+own 810-frame cut, **frame 136** and **frame 475** — then say so at handoff with those
+numbers.
+
+**Dynamic Zoom is equally invisible on adjustment clips**, not just media clips:
+`GetProperty("DynamicZoom")` returns `null` and `get_transform` reports
+`ZoomX 1, ZoomY 1` whether or not it is switched on. The only way to tell is to render
+two frames at different times and compare.
+

@@ -37,3 +37,38 @@ last spoken line that the music carries alone.
 
 Related: [[hook-construction-taste]], [[caption-placement-rule]],
 [[resolve-frame-conventions]], [[english-vo-config]]
+
+## Track stack when text is present (measured 2026-09-04, tranhtreotuong VN)
+
+I put the captions on V2. The user moved them to **V4** and put the adjustment clips
+on V3. Their layout:
+
+| Track | Content |
+|---|---|
+| V4 | Text |
+| V3 | Adjustment Clip (grade) |
+| V2 | left EMPTY — room for b-roll / inserts |
+| V1 | The cut |
+| A3 | SFX |
+| A2 | VO |
+| A1 | Source audio |
+
+**Text must sit ABOVE the adjustment clips.** An adjustment clip grades everything
+below it, so captions on V2 pick up the look and the white type shifts colour. The
+top track keeps text out of the grade's reach — that is the reason, not preference.
+
+**How they place the adjustment clips** (on an 810-frame cut):
+- **Two, not one**, split at **frame 475** — the content boundary where the intro
+  block hands over to the how-to block. The two halves have different brightness and
+  want separate grades.
+- Starting at **frame 136, not 0** — the hook is deliberately left outside the grade
+  layer — and running to the end.
+
+So when building with `text`: create this stack up front (V2 empty, V3 free for the
+adjustment pass, text on V4) instead of stacking text on V2 and leaving them to drag
+it up.
+
+**They kept every caption and SFX frame I had measured**, nudging only
+`01_ui_pop_glass` from 257 to 260. The placement method is settled; the track
+structure was the gap.
+

@@ -207,6 +207,63 @@ chúng chồng lên nhau: hai item trên cùng một track là lỗi.
 
 **Tự kiểm:** `frame_đặt + thời_gian_hiện ≤ frame_từ_khoá`. Vi phạm là caption muộn.
 
+### Tầng track khi có `text` — đo từ bản người dùng tự dựng lại (2026-09-04)
+
+Tôi đặt text lên V2. Người dùng **dời lên V4** và chèn adjustment clip vào V3. Cấu
+trúc họ dùng:
+
+| Track | Nội dung |
+|---|---|
+| **V4** | Text |
+| **V3** | Adjustment Clip (grade) |
+| **V2** | Để trống — chừa chỗ cho b-roll / chèn về sau |
+| **V1** | Cut |
+| A3 | SFX |
+| A2 | VO |
+| A1 | Tiếng source |
+
+**Lý do text phải nằm TRÊN adjustment clip:** adjustment clip grade mọi thứ bên dưới
+nó. Text đặt ở V2 sẽ bị grade theo — chữ trắng thành ngả màu theo look của cảnh. Đặt
+text ở track cao nhất là để nó nằm ngoài tầm với của lớp grade.
+
+**Adjustment clip đặt thế nào** (đo trên cut 810 frame):
+
+- **Hai clip, không phải một.** Cắt ở **frame 475** — đúng ranh giới đoạn nội dung
+  (chuyển từ khối giới thiệu sang khối hướng dẫn). Hai đoạn có tông sáng khác nhau
+  nên cần grade riêng.
+- **Bắt đầu ở frame 136, không phải 0.** Hook được để nguyên, không nằm trong lớp
+  grade. Kéo dài tới hết timeline.
+
+Khi dựng có `text`, **tạo sẵn cấu trúc track này** — V2 để trống, V3 để trống chờ
+adjustment, text lên V4. Đừng dồn text xuống V2 rồi để người dùng phải kéo lên.
+
+### Adjustment clip: tạo được, nhưng KHÔNG đặt được lên track cần
+
+Đo 2026-09-04. `timeline insert_generator("Adjustment Clip")` **chạy được** — ra một
+adjustment clip 150 frame. Nhưng nó rơi vào **V1**, và V1 là chỗ để cut.
+
+Cùng cái bẫy của `insert_title`: sáu lệnh `Insert*IntoTimeline` không nhận
+`trackIndex`. Đã thử khoá V1 và V2 để ép nó rơi lên V3 → lệnh **thất bại**
+(`Failed to insert generator`), không phải rơi lên track trên. Giống hệt kết quả đã
+đo với title.
+
+Đường vòng nested timeline **không dùng được ở đây**: lồng adjustment clip vào một
+timeline con biến nó thành clip thường, mất hẳn tác dụng grade lớp dưới.
+
+`MoveClips` chỉ dời clip giữa thư mục Media Pool, không dời item giữa track.
+
+**Nên làm gì:** khi dựng có `text`, **tạo sẵn track V3 trống** và cắm hai marker ở
+điểm bắt đầu và điểm cắt của lớp grade (đo trên cut 810 frame: **frame 136** và
+**frame 475**). Người dùng kéo hai adjustment clip vào là xong trong mười giây.
+
+**Nói thẳng trong báo cáo cuối** rằng adjustment clip là việc tay, kèm hai con số
+frame. Đừng im lặng bỏ qua, cũng đừng hứa làm được.
+
+**Dynamic Zoom cũng không đọc được.** `GetProperty("DynamicZoom")` trả `null` trên
+cả clip media lẫn adjustment clip; `get_transform` báo `ZoomX 1, ZoomY 1` y như chưa
+bật. Muốn biết zoom có chạy hay không thì **render hai frame ở hai thời điểm rồi so**
+— đọc thông số là bế tắc.
+
 #### Mỗi caption PHẢI có một tiếng động đi kèm
 
 **Chốt 2026-09-04.** Có `text` là **tự động có SFX cho từng caption** — không cần cờ
