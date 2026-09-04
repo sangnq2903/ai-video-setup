@@ -128,3 +128,20 @@ grade version, and cut by scene as usual.
 any grade unless the user names one. The `lấy <mã>` mechanism stays and works; it is
 simply never triggered on its own.
 
+## FINAL 2026-09-04: colour measurement is the user's job, not mine
+
+They asked me once to check `EXP` against 896 and `WB` for neutrality, I measured it,
+and then they closed it: *"thôi không cần skill này tôi tự đo và chỉnh"*.
+
+**Do not measure grades. Do not offer to.** Not the waveform, not UAVG/VAVG, not
+percentiles. They read their own scopes and adjust by hand — that is the part of the
+craft they keep.
+
+The measurement technique is kept below purely as reference in case they ever ask
+again for a one-off. It is not a step in any workflow, and it never appears in a
+report unsolicited.
+
+One honest limit worth remembering if they do ask: `UAVG`/`VAVG` average the whole
+frame, so a shot with skin or a coloured subject reads as a cast when the white
+balance is fine. A number is not a verdict without a neutral reference in frame.
+
