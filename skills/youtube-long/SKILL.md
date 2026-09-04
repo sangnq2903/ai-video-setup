@@ -1,6 +1,6 @@
 ---
 name: youtube-long
-description: Dựng video YouTube dài (ngang 16:9, nhiều phút) từ folder footage + file thu âm giọng người dùng — tự nhận diện giữa một bản thu dài cần cắt dead air và nhiều clip ghép theo kịch bản, cắm marker theo chương, sinh chapters kèm timecode và tiêu đề/mô tả SEO vào Notion. Dùng khi người dùng nói làm video YouTube, video dài, vlog dài, hướng dẫn dài, hoặc cần chapters/timestamp. KHÔNG dùng cho Reels/TikTok/Shorts dọc — cái đó dùng lệnh /video.
+description: Dựng video YouTube dài (ngang 16:9, nhiều phút) từ folder footage + file thu âm giọng người dùng — tự nhận diện giữa một bản thu dài cần cắt dead air, nhiều clip ghép theo kịch bản, và trường hợp mới có giọng chưa có hình; lọc bản thu vấp thành danh sách giữ nguyên văn rồi cắt thẳng trên timeline từ media gốc, kiểm chứng thông số người dùng nói, cắm marker theo chương, sinh chapters kèm timecode và tiêu đề/mô tả SEO vào Notion. Dùng khi người dùng nói làm video YouTube, video dài, vlog dài, hướng dẫn dài, cần chapters/timestamp, hoặc cần lọc/cắt một bản thu giọng dài. KHÔNG dùng cho Reels/TikTok/Shorts dọc — cái đó dùng lệnh /video.
 ---
 
 # Dựng video YouTube dài
@@ -12,6 +12,12 @@ dài nhiều phút, có chapters, chỉ tiếng Việt.**
 
 1. **Không sửa/transcode/tạo bản sao source media.** File sinh ra chỉ vào
    `<folder>/elevenlabs/` hoặc scratch. Đọc thì thoải mái.
+   **Hệ quả bắt buộc: mọi cú cắt làm TRÊN TIMELINE, từ media gốc.** Không render
+   một file trung gian bằng ffmpeg rồi đặt file đó lên timeline — làm vậy là
+   resample, là nướng fade vào file, và là giao cho người dùng một khối phẳng
+   không sửa lại được. Đúng cách: nhiều clip trên một track, mỗi clip trỏ vào
+   source chưa đụng tới. **Áp cho cả audio lẫn video.** Chốt 2026-09-04 sau khi
+   tôi làm sai và bị bắt. Công thức ở mục *Cắt trên timeline từ media gốc*.
 2. **Dựng trong Resolve project MỚI** tên `AI Edits - <tên dự án>`. Kiểm tra
    `project_manager list` trước. Có project sẵn của người dùng cho cùng buổi quay
    thì **không mở, không sửa, không xoá timeline nào trong đó**.
@@ -44,7 +50,19 @@ Rồi quyết định đi đường nào — **nói rõ chọn đường nào v�
 - **Đường B — ghép theo kịch bản:** nhiều clip rời độ dài tương đương, giọng nói
   nằm ở file audio riêng.
   → làm như `/video` nhưng ngang và dài hơn.
+- **Đường C — CHỈ CÓ GIỌNG, chưa có hình:** trong folder không có clip nào.
+  **Đây không phải lý do dừng.** Vẫn làm được, và làm hết:
+  bóc lời → bảng cảnh quay (cột "Cảnh quay" khi đó **toàn bộ là cảnh cần quay
+  thêm**, viết đủ cụ thể để cầm máy đi quay) → chương + SEO vào Notion →
+  timeline chỉ có giọng đã lọc + marker, để mở Resolve ra là thấy phải quay gì ở
+  đâu. Nói thẳng cái gì chưa dựng được và vì sao, rồi giao phần còn lại.
 - Mơ hồ → hỏi, đừng đoán.
+
+**Nghe kỹ xem trong lời họ có nhắc tới hình không.** Ở cut 17 Pro người dùng nói
+*"cái scene mà các bạn đang được xem ở đây"* và *"setup quay ProRes RAW để quay
+trực tiếp video này"* — tức là có buổi quay song song ở đâu đó. Hỏi ngay: footage
+đó nằm đâu, hay chưa quay. Và cảnh **behind-the-scene / so sánh hai máy phải quay
+CÙNG BUỔI** với A-roll, quay bù sau không khớp ánh sáng — đưa lên đầu danh sách.
 
 ## B2 — Voice → text
 
@@ -55,6 +73,19 @@ Hỏi link Notion, hoặc tìm trang theo tên dự án.
 
 `isolate_audio` trước nếu ồn. `speech_to_text` bật timestamp (cần cho chapters và
 text). Lưu `<folder>/elevenlabs/transcript.json`.
+
+**NÉN TRƯỚC KHI UPLOAD.** Bản thu của người dùng có thể rất nặng — đo 2026-09-04:
+ALAC 192kHz stereo, **105,7MB cho 25 phút**. ASR không dùng gì trên 16kHz mono, nên
+tạo bản nén vứt đi rồi upload bản đó:
+
+```
+ffmpeg -v error -y -i <source> -vn -ac 1 -ar 16000 -c:a libmp3lame -b:a 32k \
+  <folder>/elevenlabs/voice-stt.mp3
+```
+
+Ra **6,08MB (nhỏ hơn 17 lần)**, transcript vẫn đủ 4936 từ với timestamp sạch. Người
+dùng đã dừng một lần chạy để yêu cầu đúng việc này. Xoá bản nén trung gian bitrate
+cao nếu lỡ tạo, đừng để hai file cùng lúc.
 
 Bản thu dài cho ra transcript rất dài. **Đừng đổ cả transcript ra chat** — tóm tắt
 theo ý chính kèm timecode, hỏi người dùng có muốn đọc đầy đủ không.
@@ -68,6 +99,15 @@ theo ý chính kèm timecode, hỏi người dùng có muốn đọc đầy đ�
    họ, không phải dịp sáng tác lại.
 3. **Tiêu đề + mô tả SEO**: 3–5 phương án tiêu đề để người dùng chọn, một đoạn mô tả,
    và tag. Tiêu đề bám từ khoá người dùng thực sự nói, không nhồi từ khoá sáo rỗng.
+4. **KIỂM CHỨNG MỌI CON SỐ NGƯỜI DÙNG NÓI.** Video review nào cũng đầy thông số, và
+   người nói giữa chừng rất dễ lấy nhầm số của đời máy trước. Tra nguồn hãng, dẫn
+   link vào Notion, và **ghi cảnh báo ngay tại câu sai** chứ không gom vào một chỗ.
+   Đo thật ở cut 17 Pro: sai 5 con số (độ sáng lấy nhầm số đời trước, gọi crop là
+   tiêu cự, giá lệch, gọi sai tên dòng máy sắp ra, nói "y chang" cho cả máy trong
+   khi tin đồn chỉ đúng mặt lưng) và 3 chỗ gọi sai tên riêng.
+   Ba loại phải tách bạch: **sai số liệu** (phải sửa) · **suy đoán nguyên nhân**
+   (bỏ mệnh đề giải thích, giữ trải nghiệm) · **tin đồn** (giữ, nhưng bắt buộc nói
+   rõ là tin đồn và chèn chữ lên hình — hôm sau hãng ra mắt là biết ai đúng).
 4. Ghi tất cả vào **một Notion page**: kịch bản, chapters, tiêu đề, mô tả, tag.
 
 ### Kịch bản = BẢNG CẢNH QUAY có timestamp, không phải đoạn văn
@@ -108,6 +148,59 @@ marker mang theo gợi ý cảnh của đoạn đó, để mở Resolve ra là t
 
 **CHỐT 2:** duyệt kịch bản + tiêu đề.
 
+**CHỐT không phải là chỗ đứng đợi.** Cứ viết trang Notion ra rồi đưa link; câu hỏi
+đặt BÊN CẠNH sản phẩm, không thay cho sản phẩm. Người dùng duyệt bằng cách nhìn,
+không bằng cách trả lời. (Chốt 2026-09-04: tôi tóm tắt transcript rồi ngồi hỏi ba
+câu, họ đáp lại đúng một câu — *"sao chưa đưa vào notion"*.)
+
+## Bản thu thô nhiều vấp — LỌC, đừng viết lại
+
+Khi bản thu là **một mạch nói có vấp, có nói lại** (không phải bản đọc sạch), sản
+phẩm là **DANH SÁCH GIỮ**, không phải một kịch bản hay hơn.
+
+**Luật gốc: giữ nguyên văn lời họ. Không sửa câu chữ.** Chốt 2026-09-04 sau khi tôi
+viết lại cả bài — dời chỗ đoạn hay lên đầu, chế thêm câu đố giữ chân người xem — và
+bị bác thẳng: *"chỉ lọc voice để lọc các đoạn trùng lặp, sai thông số, chứ không sửa
+câu từ của tôi."* Gợi ý về cấu trúc/nhịp được phép, nhưng **để ở cột ghi chú cạnh
+câu nguyên văn**, không thay vào chỗ lời họ.
+
+Cách làm:
+
+1. **Chọn lần nói sạch nhất của mỗi ý, giữ nguyên văn**, kèm mốc vào–ra để cắt được
+   thẳng từ bản thu — không phải thu lại giọng.
+2. **Trích chữ bằng máy, đừng gõ tay.** Neo vào cụm đầu + cụm cuối rồi lấy đoạn
+   thẳng từ `words[]`. Coi chừng token gộp hai từ qua chỗ vấp (`"chúng...Vậy"`):
+   khớp trên **chuỗi ký tự phẳng có map char→token**, không so từng token.
+3. **Chỗ sai thông số thì chú ở ngay câu đó**, kèm *cụ thể mấy tiếng cần thu lại*.
+   Bốn con số sai chỉ tốn bốn lần thu vài giây, không phải thu lại cả bài.
+4. **Lần nói đúng thường đã nằm sẵn trong một take bị bỏ.** Kiểm trước khi bắt họ
+   thu thêm — ở cut 17 Pro, take đầu nói đúng "iPhone 18 Pro" còn take sau mới sai
+   thành "dòng iPhone 18".
+5. **Có câu chỉ cần CẮT là hết sai** — bỏ mệnh đề suy đoán nguyên nhân, bỏ số sai
+   rồi bỏ luôn liên từ bị treo phía sau.
+
+### Cắt không tạo ra được cái đúng — cắm marker THU BÙ
+
+Skill này không lồng tiếng máy, nên chỗ nào sai số mà cắt xong là **mất hẳn ý**, thì
+cắm một marker riêng: **màu Cyan, `duration` 90 frame** để nhìn ra thanh ngang ngay,
+tên `THU BÙ 01/02/03`, note ghi **đúng câu cần thu và ghép vào đâu**.
+
+### Cắt một phần có thể đẻ ra lỗi mới
+
+Đo thật: câu *"ba tiêu cự không chấm năm, một X và tám X"* sai ở "tám X". Cắt riêng
+"và tám X" thì còn *"ba tiêu cự 0.5x"* — hô ba mà kể một, **sai kiểu khác**. Phải bỏ
+cả câu liệt kê. **Cắt xong luôn đọc lại câu còn lại thành tiếng trong đầu** trước khi
+coi là xong.
+
+### Mối nối phải soi riêng
+
+Sau khi ghép, dò hai chỗ này — cả hai đều đã xảy ra:
+
+- **Lặp từ ở điểm nối**: 3 từ cuối đoạn trước trùng 3 từ đầu đoạn sau (`hub dock`,
+  `nên là`, `có màn hình đẹp`, `quá chuyên biệt`). So tự động, đừng đọc bằng mắt.
+- **Mất liên từ đầu câu**: cắt mất *"Trừ cái"* làm câu kết cụt đầu thành *"Vỏ của nó
+  khá là dễ cấn trầy"*.
+
 ## B4 — Dựng timeline
 
 1. Project mới, import footage + file thu âm.
@@ -123,6 +216,47 @@ marker mang theo gợi ý cảnh của đoạn đó, để mở Resolve ra là t
    Sửa marker khiến Resolve tự archive timeline — dọn `_archived_vNN` sau khi xong.
 7. **Kiểm bằng frame thật** trước khi báo xong. Không kết luận từ metadata.
 
+## Kiểm chứng — luật rút ra sau ba lỗi lọt lưới (2026-09-04)
+
+Cả ba lỗi dưới đây đều đi kèm `success: true`. Lệnh chạy đúng, kết quả sai.
+
+**1. Cắt xong thì BÓC LỜI LẠI chính bản vừa dựng**, rồi dò từng cụm sai xem còn 0
+lần xuất hiện không, và dò cả các cụm **phải còn** (đề phòng cắt lẹm). Đây là cách
+duy nhất bắt được chuyện *"cắt tám X xong còn ba tiêu cự 0.5x"*.
+
+**2. Marker phải đối chiếu với CHỮ, không với phép cộng của mình.** Sau khi tính
+frame, lấy transcript của bản đã dựng ra xem mốc đó rơi vào chữ nào. Lần đầu làm,
+marker chương 8 rơi giữa câu — *"Pro nhỏ gọn nên mình cũng rất dễ…"* thay vì
+*"Vì kích thước iPhone 17 Pro nhỏ gọn…"*.
+
+**3. Dò khoảng lặng thì lấy khoảng lặng ĐẦU TIÊN, cửa sổ hẹp (~2 giây).** Lấy cái
+CUỐI trong cửa sổ 3 giây làm bốn đoạn bị cắt lẹm cả cụm từ đầu câu — nặng nhất là
+mất luôn *"âm thanh đi trực tiếp từ mic của mình"*. Sai này không lộ ra ở bất kỳ
+readback nào, chỉ lộ khi soi marker và nghe lại chữ.
+
+**Đừng render đi render lại rồi mới kiểm.** Tính xong danh sách cắt thì kiểm mốc
+trước, dựng sau — một lần đo thay cho ba lần dựng lại timeline.
+
+## Dựng lại thì lấy nguồn từ Notion, không từ sản phẩm phụ
+
+Chốt 2026-09-04: *"không được dựa vào voice-edit đã làm trước đó mà dựa vào note
+trên notion."* Trang Notion là **bản ghi đã duyệt**; file CSV/EDL/JSON tôi sinh ra
+dọc đường thì không.
+
+- Đọc bảng lọc trong chính trang Notion, rồi **giải mỗi dòng về mốc chính xác bằng
+  cách tìm lại nguyên văn câu đó trong `transcript.json`**. Timecode hiển thị trên
+  bảng chỉ chính xác tới **giây** — ở 30fps là ±30 frame, **không dùng làm điểm cắt
+  được**.
+- **Lấy Ý ĐỊNH từ trang, ĐO LẠI con số từ audio.** Một bảng viết trước khi sửa bug
+  sẽ giữ nguyên con số cũ. Thực tế đã xảy ra: bảng "22 chỗ can thiệp" ghi 1,69s /
+  1,90s / 0,52s / 2,21s trong khi callout ngay dưới ghi số đã sửa — trang tự mâu
+  thuẫn. Dựng bằng cách đo lại thì miễn nhiễm; dựng bằng cách chép số thì tái sinh
+  bug. **Phát hiện mâu thuẫn thì sửa luôn trang**, đừng để đó.
+- **Bẫy đọc bảng Notion:** heading `### N. Tên` nằm **SAU** dòng cuối của chương
+  trước trong cùng một khối text. Đổi tên chương trước khi đọc dòng đó thì **lệch
+  một dòng ở MỌI ranh giới chương**. Đọc ô trước, đổi chương sau. Bắt được bằng
+  cách đếm số dòng mỗi chương và so với bản dựng trước.
+
 ## Chapters cho phần mô tả YouTube
 
 Xuất danh sách dán thẳng vào mô tả, dạng `0:00 Tên chương`. Luật YouTube:
@@ -133,6 +267,17 @@ Xuất danh sách dán thẳng vào mô tả, dạng `0:00 Tên chương`. Luậ
 
 Không đủ điều kiện thì chapters sẽ không hiện — **báo người dùng**, đừng xuất danh
 sách hỏng rồi coi như xong.
+
+**Chương cuối hay dính luật 10 giây** — phần "cảm ơn, like và đăng ký" thường chỉ
+4–5 giây. Nói rõ cách xử: bỏ dòng đó khỏi mô tả, hoặc gộp vào chương trước.
+
+**Timecode chapters phải ĐO TRÊN BẢN ĐÃ CẮT, không phải trên bản thu thô.** Cộng dồn
+độ dài thật của các đoạn giữ lại (kể cả khoảng hở chèn thêm), rồi đối chiếu với
+transcript của bản dựng. Nếu trên trang Notion còn khối chapters tính theo bản thô
+thì **gắn cảnh báo lên khối đó** — đừng để hai bảng số cạnh nhau mà không nói cái
+nào dùng được.
+
+## Cắt trên timeline từ media gốc — CÔNG THỨC ĐÃ CHẠY THẬT (2026-09-04)
 
 ### Dựng cut: `end_frame` EXCLUSIVE, và dùng `mediaType` khi cần
 
@@ -154,6 +299,47 @@ thì truyền **`mediaType: 1`**. Chỉ cần tiếng thì `mediaType: 2`.
 
 **Tiếng máy quay:** cut này dùng VO riêng nên tiếng camera là rác — **xoá hẳn khỏi
 A1**, đừng chỉ tắt track. Tắt track còn làm hỏng lệnh append sau đó.
+
+Đây là cách hiện thực luật 1. Dựng 148 cú cắt từ một file thu 25 phút, một lệnh:
+
+```
+media_pool create_timeline_from_clips
+  name: "<tên>"
+  clip_infos: [ {clip_id, startFrame, endFrame, recordFrame}, ... ]
+```
+
+- `startFrame`/`endFrame` là **frame NGUỒN**, `recordFrame` là vị trí trên timeline
+  (mặc định tính tương đối so với đầu timeline).
+- `endFrame` **EXCLUSIVE** — cùng cái bẫy đã ghi ở trên. Clip dài N frame từ nguồn S
+  thì truyền `S + N`.
+- **ĐỌC FPS CỦA MEDIA POOL ITEM TRƯỚC.** `media_pool_item get_clip_property` với key
+  `FPS` và `Duration`. Đo thật: file audio **ALAC 192kHz** vẫn được Resolve đếm ở
+  **30fps** (`Duration` `00:25:20:20` = 45.620 frame) vì đó là nhịp project lúc
+  import. Nên `frame_nguồn = round(giây × 30)`. **Đừng đoán** — với WAV thì nhịp bị
+  đóng băng theo project lúc import và có thể lệch hẳn với timeline.
+- Payload 148 clip đi lọt trong một lệnh, không cần chia nhỏ.
+
+**Kiểm sau khi dựng — bắt buộc, và đừng tin `success: true`:**
+
+1. `timeline get_current` → số frame tổng phải khớp con số tính trước khi dựng.
+2. `timeline get_items_in_track` → **độ dài từng clip** phải khớp từng con số. Đây là
+   chỗ lộ ra lỗi `end_frame` lệch 1 frame.
+3. `timeline_item get_source_start_frame` / `get_source_end_frame` trên clip **đầu và
+   cuối** → đọc ngược ra đúng mốc nguồn đã yêu cầu.
+
+**Khoảng hở giữa các clip là CỐ Ý.** Cắt sát từ đầu tới từ cuối thì mất luôn quãng
+ngắt hơi, câu sẽ dính vào nhau. Chèn lại **4 frame** giữa hai đoạn cùng chương và
+**11 frame** giữa hai chương. Vì vậy `detect_gaps_overlaps` sẽ báo cả trăm gap trên
+track audio — **bình thường**. Luật `gap_count: 0` chỉ áp cho **cut hình trên V1**.
+Cái phải bằng 0 ở đây là `overlap_count`.
+
+**Fade ở điểm cắt là việc tay.** API không đặt được fade handle cho clip audio. Điểm
+cắt rơi vào chỗ ngắt hơi thì hiếm khi kêu cạch; nghe thấy thì bảo người dùng chọn
+tất cả rồi thêm fade 2 frame.
+
+**Sample rate của project không đọc được qua API** (nằm trong Fairlight settings).
+Nếu người dùng quan tâm giữ nguyên chất lượng thì nhắc họ tự kiểm; 48kHz là chuẩn
+giao video, không phải lỗi.
 
 ## Text động trên timeline — CÔNG THỨC ĐÃ CHỨNG MINH (2026-09-02)
 
@@ -554,7 +740,15 @@ tool** — mở đầu lệnh bằng `export PATH="/opt/homebrew/bin:$PATH";`. M
 ffmpeg. Có: `silencedetect`, `ebur128`, `tile`, `thumbnail`, `scale`, `crop`,
 `select`, `fps`, `loudnorm`, `atrim`, `volumedetect`.
 
-ffmpeg ở đây chỉ để **ĐỌC**. Không transcode, không ghi đè source.
+ffmpeg ở đây gần như chỉ để **ĐỌC**. Không ghi đè source, và **không dùng để dựng
+cut** — cắt là việc của timeline (xem luật 1).
+
+**Ngoại lệ duy nhất được phép transcode: bản nén để upload đi bóc lời**, ghi vào
+`<folder>/elevenlabs/`. Đó là file vứt đi, không phải sản phẩm.
+
+Nếu lỡ dựng một bản render trung gian rồi mới nhớ ra luật: **đừng để nó nằm trên
+timeline**. Dựng lại bằng clip cắt từ media gốc, và nói rõ trong báo cáo là file
+render kia còn trên đĩa, người dùng tự xoá.
 
 ## Báo cáo cuối
 
@@ -562,3 +756,13 @@ Nêu rõ: project + timeline đã tạo, link Notion, file đã sinh, và **nh�
 làm** (không grade / không text / không nhạc / không render) để không ai tưởng là
 làm thiếu. Bước nào bị bỏ vì vướng thì nói thẳng lý do — đừng báo hoàn thành khi
 mới xong một nửa.
+
+Nếu có lọc/cắt bản thu, báo cáo thêm:
+
+- **Đã kiểm chứng thế nào** — không chỉ nói "xong", mà nói đã bóc lời lại bản dựng
+  và các cụm sai còn 0 lần xuất hiện.
+- **Lỗi mình tự bắt được và đã sửa.** Người dùng cần biết chỗ nào từng suýt lọt, để
+  họ biết nên nghe kỹ đoạn nào.
+- **Cái gì cắt không cứu được** — liệt kê từng câu THU BÙ kèm đúng lời cần thu.
+- **Việc tay còn lại**: fade điểm cắt, adjustment clip, sample rate project, và
+  normalize (đưa số LUFS đo được, đừng tự normalize).
