@@ -343,6 +343,57 @@ giao video, không phải lỗi.
 
 ## Text động trên timeline — CÔNG THỨC ĐÃ CHỨNG MINH (2026-09-02)
 
+### Vị trí chữ trên khung hình — biên an toàn theo nền tảng, TOẠ ĐỘ THEO TỪNG FRAME
+
+**Biên dưới đây là RÀNG BUỘC CỨNG, không phải toạ độ để dán mù.** Icon/UI của nền
+tảng luôn nằm cố định ở đó bất kể nội dung cảnh quay, nên phần trăm này không đổi.
+Nhưng **vị trí thật bên trong biên đó phải chọn theo đúng frame đang lên hình tại
+thời điểm đặt caption** — không phải cứ lower-third hay giữa khung là xong. Chỗ đó
+trống ở caption này, nhưng ở caption khác có thể đúng ngay chỗ sản phẩm đang được
+thao tác trên bàn.
+
+Preset mặc định canh giữa khung hình — dùng được khi khung đó đang trống ở giữa,
+**không dùng được khi giữa khung có sản phẩm/chủ thể đang được nói tới**. Che mất
+đúng thứ caption đang gọi tên là hỏng nặng hơn cả đặt sai thời điểm.
+
+**Video ngang (YouTube, 1920×1080 — mặc định của skill này):** không có icon nền
+tảng đè lên khung khi xem; vùng nguy hiểm duy nhất là mép khung — **title-safe
+area chuẩn broadcast: chừa 5% mỗi cạnh**. Lower-third truyền thống (~75–85%
+chiều cao khung) là điểm khởi đầu hợp lý vì thường trống và không trùng vị trí
+CC mặc định của YouTube khi người xem tự bật, **nhưng vẫn phải soi frame** — cảnh
+quay tay/sản phẩm ở dưới khung thì lower-third che đúng chỗ đang nói, phải đẩy
+chữ lên trên hoặc sang bên trống. Giữa khung ngang thường che mặt người nói nên
+tránh trừ khi frame đó thật sự trống ở giữa.
+
+**Video dọc (Reels/TikTok/Shorts, 1080×1920 — dùng khi người dùng đổi sang lệnh
+`/video`):**
+
+| Vùng | Chừa ra vì |
+|---|---|
+| ~15% bên phải | Cột icon like/comment/share/profile — cả ba nền tảng đều đặt ở đây |
+| ~20–25% đáy khung | Caption/username của nền tảng, thanh tiến trình, nút CTA |
+| ~8% đỉnh khung | Một số máy che bằng notch/status bar khi xem toàn màn hình |
+
+Trong phần khung còn lại, soi frame thật trước rồi mới chọn toạ độ né sản phẩm.
+
+**Cách làm, cả hai hướng:** `timeline_frame capture` tại đúng frame định đặt
+caption **TRƯỚC KHI** set `Center`, nhìn xem sản phẩm/chủ thể nằm ở đâu, rồi chọn
+toạ độ trong biên an toàn né được chỗ đó. Vị trí toàn khối chữ đổi qua input
+`Center` (Point) trên tool `Template` — **`get_inputs` trước để xác nhận đúng tên
+input cho preset đang dùng** (tên có thể đổi theo preset, cùng bẫy đã ghi ở mục
+`Delay`). Toạ độ chuẩn Fusion: `(0,0)` góc dưới-trái, `(1,1)` góc trên-phải,
+`(0.5,0.5)` là mặc định giữa khung.
+
+**Bẫy định dạng — đã đo 2026-09-05:** `set_input` cho input kiểu `Point` bằng
+dict `{"1": x, "2": y, "3": 0}` (đúng hệt định dạng `get_input` trả về) báo
+`success: true` nhưng **không hề ghi** — đọc lại vẫn ra giá trị cũ. Phải truyền
+**list `[x, y]`** thì mới thực sự set được. Luôn `get_input` đọc lại ngay sau khi
+set để xác nhận giá trị đã đổi, rồi mới `timeline_frame capture` để xác nhận
+bằng mắt — đọc lại rẻ hơn render, làm cả hai vì đọc lại chỉ xác nhận giá trị ghi
+đúng, không xác nhận vị trí trên khung có thật sự né được sản phẩm hay không.
+Hai caption liền nhau trong cùng một bài hoàn toàn có thể nằm ở hai toạ độ khác
+nhau — đó là bình thường, không phải thiếu nhất quán.
+
 ### Caption phải HIỆN XONG đúng lúc từ khoá tới — không phải bắt đầu ở đó
 
 **Chốt 2026-09-04, sau hai lần đặt sai liên tiếp.**

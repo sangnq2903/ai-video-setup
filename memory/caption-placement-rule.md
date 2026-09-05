@@ -114,3 +114,52 @@ rotate.
 Source: Epidemic `SearchSoundEffects` first; the user's own `~/Downloads` library
 (`whoosh-*`, `pop_*`, `*-riser-*`) is allowed, but say in the report which was used.
 
+## Spatial position: safe-zone percentages are a hard boundary, not a coordinate (2026-09-05)
+
+I first wrote platform/orientation guidance as if it were a formula to apply blindly —
+"vertical: center at 35-65% height", "horizontal: lower-third at 75-85%". User corrected:
+*"phải tùy theo frame gắn chứ không phải theo công thức, đôi khi che mất sản phẩm"* —
+position must be read from the actual frame at that caption's timecode, because a fixed
+percentage can land right on top of the product the caption is naming.
+
+**Why:** the safe-zone percentages exist only to avoid platform UI (TikTok/Reels/Shorts
+icon column + caption strip, YouTube title-safe margins) — that part IS fixed, since the
+UI overlay never moves regardless of shot content. But the exact coordinate *inside* that
+safe zone must be chosen per caption by looking at what's actually in frame. Captioning
+"Nano double-sided tape" dead-center is wrong if the tape is being held dead-center at
+that exact frame.
+
+**How to apply:** `timeline_frame capture` at the caption's target frame *before* setting
+`Center`, see where the subject/product sits, then pick whichever half of the safe zone is
+empty. Two captions in the same cut can legitimately land at different coordinates — that
+is correct, not inconsistent. Never default to the preset's center position without this
+check when the frame has a product in it.
+
+Written into `commands/video.md` and `skills/youtube-long/SKILL.md` (section "Vị trí chữ
+trên khung hình") alongside the platform safe-zone tables, so this survives without me.
+
+**Tested it live 2026-09-05** on the `Tranh Treo Tuong - VN 0905v2 - EN` timeline: disabled
+all 4 caption clips on V4, captured each caption's keyword frame with the underlying shot
+bare, and found caption 1 ("Made with ChatGPT") landed dead-center on a close-up of two
+hands typing — the default `Center` (0.5, 0.5) would have sat right on the hands. The other
+3 captions had empty background at their keyword frame, so their default center position
+was fine as-is.
+
+**Format trap found while fixing it:** `fusion_comp set_input` on a `Point`-type input
+(`Center`) with a dict `{"1": x, "2": y, "3": 0}` — the exact shape `get_input` returns —
+reports `success: true` but the write silently does not take: reading it back immediately
+after gives the old value, and the rendered frame is unchanged. Passing a plain list
+`[x, y]` instead does write correctly (confirmed by both re-reading the input and a
+before/after frame capture). This is the same "success:true, nothing happened" class of
+bug already logged for `insert_title`, `DynamicZoom`, etc. in this project's memory — same
+lesson: never trust the API's own success flag for anything spatial, always read back or
+render to confirm.
+
+Fusion's own convention for this Point: `(0,0)` = bottom-left, `(1,1)` = top-right,
+`(0.5,0.5)` = center. Moved the hook caption to `[0.5, 0.85]` (upper background band, clear
+of the hands) and confirmed with a second capture.
+
+Related: [[resolve-frame-conventions]] — same "don't reuse a computed/assumed value
+across different shots without checking" principle (there: zoom values don't port
+between clips; here: position doesn't port between captions).
+
